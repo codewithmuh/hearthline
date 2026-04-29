@@ -1,0 +1,28 @@
+# env
+.env
+.env.local
+.env.*.local
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# django
+db.sqlite3
+staticfiles/
+media/
+
+# node
+node_modules/
+.next/
+out/
+*.log
+
+# os
+.DS_Store
+.idea/
+.vscode/

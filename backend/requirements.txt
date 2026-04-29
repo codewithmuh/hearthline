@@ -1,0 +1,10 @@
+Django==5.1.4
+djangorestframework==3.15.2
+django-cors-headers==4.6.0
+psycopg[binary]==3.2.3
+python-dotenv==1.0.1
+anthropic==0.42.0
+openai==1.59.6
+twilio==9.4.1
+requests==2.32.3
+gunicorn==23.0.0
