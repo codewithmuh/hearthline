@@ -1,0 +1,65 @@
+# Production stack — backend + Postgres + Caddy reverse proxy with auto-HTTPS.
+# Deploy on any cheap VPS (Hetzner CX11 / DigitalOcean $6 droplet / etc.):
+#
+#   git clone https://github.com/codewithmuh/hearthline.git
+#   cd hearthline
+#   cp .env.example .env       # fill in DJANGO_SECRET_KEY, ANTHROPIC_API_KEY, etc.
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Point your DNS A record:
+#   api.hearthline.codewithmuh.com  →  your-vps-ip
+# Caddy will auto-issue a Let's Encrypt cert on first request.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hearthline}
+      POSTGRES_USER: ${POSTGRES_USER:-hearthline}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - hearthline_pg_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hearthline}"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: ${API_DOMAIN:?Set API_DOMAIN in .env e.g. api.hearthline.codewithmuh.com}
+      DJANGO_CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN:-https://hearthline.codewithmuh.com}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  hearthline_pg_prod:
+  caddy_data:
+  caddy_config:

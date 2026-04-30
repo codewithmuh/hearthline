@@ -90,6 +90,27 @@ Seed the dashboard with believable demo data:
 docker compose exec backend python manage.py seed_demo --wipe
 ```
 
+## Deploying
+
+Same stack [codewithmuh.com](https://codewithmuh.com) runs on:
+
+- **Frontend → Vercel** (free tier, auto-deploys from GitHub)
+- **Backend (Django + Postgres) → Docker Compose on a small VPS** with **Caddy** out front for auto-HTTPS
+
+`docker-compose.prod.yml` + `Caddyfile` ship in the repo. Total cost for a single demo lands around **$10–25/mo**. Full step-by-step in [DEPLOY.md](DEPLOY.md).
+
+```bash
+# on a $6 VPS — backend + Postgres + Caddy:
+git clone https://github.com/codewithmuh/hearthline.git && cd hearthline
+cp .env.example .env && nano .env
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+```bash
+# on your laptop — push, then import on vercel.com/new (root dir = frontend/):
+gh repo create codewithmuh/hearthline --public --source=. --push
+```
+
 ## Wire real voice (Vapi)
 
 1. Expose your local backend: `ngrok http 8000` → grab the HTTPS URL as `BASE`

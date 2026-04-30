@@ -1,0 +1,35 @@
+# Caddy reverse proxy for the Hearthline backend.
+# Caddy automatically issues + renews Let's Encrypt certs. No nginx config hell.
+#
+# Set API_DOMAIN in .env before bringing the stack up.
+
+{$API_DOMAIN} {
+    encode zstd gzip
+
+    # Forward original headers so Django sees the right client IP + scheme
+    reverse_proxy backend:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Long-running webhook posts (Vapi end-of-call reports can be large)
+    request_body {
+        max_size 8MB
+    }
+
+    # Helpful security headers (Django already sets HSTS in production)
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    log {
+        output file /data/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}

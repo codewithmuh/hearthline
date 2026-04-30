@@ -1,137 +1,227 @@
 # Deploying Hearthline
 
-This guide covers the production deploy stack the project is wired for:
+Same pattern as the [codewithmuh.com](https://codewithmuh.com) stack:
 
-- **Frontend → Vercel** (free tier works, ~30s deploys)
-- **Backend → Railway** (Dockerfile-based, $5/mo hobby plan)
-- **Postgres → Railway** (managed, same project)
+- **Frontend (Next.js) → Vercel** — auto-deploys from GitHub
+- **Backend (Django + Postgres) → Docker Compose on a VPS** — Caddy out front for auto-HTTPS
 
-You can swap any component (Fly.io, Render, Supabase, etc.) — the configs in this repo are the recommended path.
-
----
-
-## 1. Prerequisites
-
-- A GitHub account (the repo lives there — Vercel + Railway both deploy from GitHub)
-- A custom domain you control (e.g. `codewithmuh.com` with a subdomain like `hearthline.codewithmuh.com`)
-- API keys (only for the features you want live):
-  - `ANTHROPIC_API_KEY` — Anna talking
-  - `OPENAI_API_KEY` — photo-quote vision
-  - Vapi account + phone number — inbound voice
-  - Twilio account + phone number — outbound SMS
+Total cost for a single demo: **~$6–10/mo VPS + Vercel free tier + Vapi $2/mo + per-minute talk**.
 
 ---
 
-## 2. Backend on Railway
+## 1. Backend — VPS + Docker Compose + Caddy
 
-1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub repo → pick `hearthline`
-2. Set the root directory to `backend/` (Railway will read `backend/railway.json` and `backend/Dockerfile.prod`)
-3. Add a **Postgres** plugin to the project → Railway auto-injects `DATABASE_URL` and the `POSTGRES_*` vars
-4. Set environment variables on the backend service:
+### a. Spin up a tiny VPS
 
+Anything works:
+
+| Provider | Cheapest option |
+|----------|-----------------|
+| Hetzner | CX22 — €4.50/mo |
+| DigitalOcean | $6/mo droplet |
+| OVH | VPS Starter |
+| your existing Docker host | free |
+
+Ubuntu 22.04 / 24.04. SSH in.
+
+### b. Install Docker + Docker Compose
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+newgrp docker
 ```
-DJANGO_SECRET_KEY=<generate-a-long-random-string>
+
+### c. Clone + configure
+
+```bash
+git clone https://github.com/codewithmuh/hearthline.git
+cd hearthline
+cp .env.example .env
+nano .env     # fill in the prod values (see below)
+```
+
+Minimum `.env` for production:
+
+```bash
+POSTGRES_DB=hearthline
+POSTGRES_USER=hearthline
+POSTGRES_PASSWORD=$(openssl rand -base64 32)   # generate one
+DJANGO_SECRET_KEY=$(openssl rand -base64 50)   # generate one
 DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=api.hearthline.codewithmuh.com,*.up.railway.app
+
+API_DOMAIN=api.hearthline.codewithmuh.com
+FRONTEND_ORIGIN=https://hearthline.codewithmuh.com
+DJANGO_ALLOWED_HOSTS=api.hearthline.codewithmuh.com
+DJANGO_CORS_ALLOWED_ORIGINS=https://hearthline.codewithmuh.com
+
 ANTHROPIC_API_KEY=...
 OPENAI_API_KEY=...
 VAPI_API_KEY=...
-VAPI_PHONE_NUMBER_ID=...
-VAPI_WEBHOOK_SECRET=...
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_FROM_NUMBER=+1...
-# CORS
-DJANGO_CORS_ALLOWED_ORIGINS=https://hearthline.codewithmuh.com
 ```
 
-5. Generate a public domain (Settings → Networking → Generate Domain) — copy it.
-6. Add a custom domain `api.hearthline.codewithmuh.com` and create a CNAME in your DNS pointing to the Railway domain.
+### d. Point DNS
 
-The backend deploys automatically on every push to `main`.
-
----
-
-## 3. Frontend on Vercel
-
-1. Go to [vercel.com](https://vercel.com) → Add New Project → Import the same `hearthline` GitHub repo
-2. Set the **Root Directory** to `frontend/`
-3. Vercel auto-detects Next.js. Set environment variables:
+Add an A record:
 
 ```
-INTERNAL_API_URL=https://api.hearthline.codewithmuh.com/api
-NEXT_PUBLIC_API_URL=https://api.hearthline.codewithmuh.com/api
+api.hearthline.codewithmuh.com  →  <your-vps-ip>
 ```
 
-> `INTERNAL_API_URL` is what server components use; `NEXT_PUBLIC_API_URL` is what the browser uses. Both point to your Railway domain.
-
-4. Add a custom domain `hearthline.codewithmuh.com` (or whatever you chose) → Vercel gives you DNS records to add.
-5. Push to `main` → Vercel ships automatically.
-
----
-
-## 4. Post-deploy
-
-### Seed demo data
+### e. Boot the stack
 
 ```bash
-railway run --service backend python manage.py seed_demo --wipe
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-(or run it via the Railway shell tab in the web UI)
+Caddy automatically issues a Let's Encrypt cert on first request. Within 30 seconds:
 
-### Wire Vapi to the live URL
+```bash
+curl https://api.hearthline.codewithmuh.com/api/health/
+# {"status": "ok", "service": "hearthline"}
+```
 
-On your Vapi Assistant:
+### f. Seed demo data + admin user
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py seed_demo --wipe
+docker compose -f docker-compose.prod.yml exec backend python manage.py createsuperuser
+```
+
+Django admin lives at `https://api.hearthline.codewithmuh.com/admin/`.
+
+---
+
+## 2. Frontend — Vercel
+
+### a. Push the repo to GitHub
+
+```bash
+gh repo create codewithmuh/hearthline --public --source=. --remote=origin --push
+```
+
+### b. Import on Vercel
+
+1. Go to [vercel.com/new](https://vercel.com/new) → Import the repo
+2. **Root Directory:** `frontend`
+3. Vercel auto-detects Next.js, no build override needed
+
+### c. Environment variables
+
+```
+INTERNAL_API_URL    = https://api.hearthline.codewithmuh.com/api
+NEXT_PUBLIC_API_URL = https://api.hearthline.codewithmuh.com/api
+```
+
+`INTERNAL_API_URL` is what server components use; `NEXT_PUBLIC_API_URL` is what the browser uses. Both point to the same Caddy domain in production.
+
+### d. Custom domain
+
+Add `hearthline.codewithmuh.com` (or whatever subdomain you want) on Vercel → Domains. Vercel issues a CNAME you add at your DNS provider.
+
+### e. Push to deploy
+
+Every push to `main` triggers a Vercel build. ~30s deploys.
+
+---
+
+## 3. Wire Vapi to the live backend
+
+On your Vapi Assistant (model = Custom LLM):
 
 | Field | Value |
 |------|-------|
 | Custom LLM URL | `https://api.hearthline.codewithmuh.com/api/calls/vapi/chat/completions/` |
-| Server URL | `https://api.hearthline.codewithmuh.com/api/calls/webhooks/vapi/` |
 | Model | `claude-sonnet-4-6` |
 | First message | `Hi, this is Anna at Rolling Shutters. How can I help?` |
+| Server URL | `https://api.hearthline.codewithmuh.com/api/calls/webhooks/vapi/` |
 
-### Custom-domain SMS confirmation
-
-Buy a Twilio number, set `TWILIO_FROM_NUMBER=+1...` on Railway, restart the backend service, place a real test call to the Vapi number. Anna runs `qualify_lead` → `book_appointment` → `send_sms` and the customer gets a real SMS.
-
----
-
-## 5. Cost ballpark (single-business demo)
-
-| Service | Cost |
-|---------|------|
-| Railway backend (hobby) | $5/mo |
-| Railway Postgres (hobby) | $5/mo (or use the free tier for tiny demos) |
-| Vercel frontend | $0 (Hobby) |
-| Vapi phone number | ~$2/mo + $0.07/min talk |
-| Twilio SMS | ~$0.0079 per SMS |
-| Anthropic Claude usage | $3-15/M tokens |
-| OpenAI GPT-4o vision | $2.50/M input · $10/M output |
-| **Total monthly demo** | **~$15-30/mo** including a few hundred test calls |
+Buy a phone number in Vapi → attach the assistant → place a real call. Anna answers, runs `qualify_lead` + `book_appointment`, the call lands in `/dashboard/calls` seconds after hangup.
 
 ---
 
-## 6. Troubleshooting
+## 4. Updating
 
-**Frontend shows "Backend unreachable"**
-→ Check `NEXT_PUBLIC_API_URL` and `INTERNAL_API_URL` on Vercel point to your Railway domain. Re-deploy after changing.
+```bash
+# on the VPS:
+cd hearthline
+git pull
+docker compose -f docker-compose.prod.yml up -d --build
+```
 
-**Vapi calls don't trigger the webhook**
-→ Confirm the Server URL on the Assistant matches your Railway domain exactly. Check Railway logs (`railway logs`) for incoming POSTs.
+Migrations run automatically on container start (the Dockerfile.prod CMD wraps `python manage.py migrate --noinput`).
+
+Frontend updates: just push to `main`, Vercel ships.
+
+---
+
+## 5. Watch + maintain
+
+```bash
+# tail backend logs
+docker compose -f docker-compose.prod.yml logs -f backend
+
+# tail Caddy access log
+docker compose -f docker-compose.prod.yml logs -f caddy
+
+# database shell
+docker compose -f docker-compose.prod.yml exec db psql -U hearthline
+
+# free disk
+docker system prune -f
+```
+
+Backup the Postgres volume nightly:
+
+```bash
+# add to root crontab:
+0 3 * * * docker compose -f /root/hearthline/docker-compose.prod.yml exec -T db \
+  pg_dump -U hearthline hearthline | gzip > /root/backups/$(date +\%F).sql.gz
+```
+
+---
+
+## 6. Cost ballpark
+
+| Line item | Cost |
+|-----------|------|
+| Hetzner CX22 VPS (or equivalent) | €4.50–6/mo |
+| Vercel Hobby (frontend) | $0 |
+| Vapi phone number | ~$2/mo |
+| Vapi talk usage | ~$0.07/min |
+| Twilio SMS | ~$0.0079/message |
+| Anthropic Claude Sonnet 4.6 | usage-based |
+| OpenAI GPT-4o vision | usage-based |
+| **Demo monthly total** | **~$10–25/mo** |
+
+---
+
+## 7. Troubleshooting
+
+**Vercel says "Backend unreachable"**
+→ `INTERNAL_API_URL` and `NEXT_PUBLIC_API_URL` on Vercel must point to your Caddy domain over HTTPS. Re-deploy after changing.
+
+**Caddy says "no certificate available"**
+→ DNS A record hasn't propagated yet. `dig api.hearthline.codewithmuh.com` on the VPS — should return its public IP. Wait, then `docker compose -f docker-compose.prod.yml restart caddy`.
 
 **Anna sounds robotic / says "I'd love to help, but my AI brain isn't connected"**
-→ `ANTHROPIC_API_KEY` isn't set on Railway, or the key doesn't have access to Claude Sonnet 4.6. Set it and restart the backend service.
+→ `ANTHROPIC_API_KEY` not in `.env`, or model access not granted. Set it, then `docker compose -f docker-compose.prod.yml restart backend`.
 
-**Migration error on first deploy**
-→ Railway runs migrations automatically on container start. Check the deploy logs for the actual error. Often it's `DATABASE_URL` not being injected — make sure the Postgres plugin is attached to the project.
+**Migration errors on first up**
+→ `docker compose -f docker-compose.prod.yml exec backend python manage.py migrate` and read the error. Usually a missing env var.
+
+**Vapi webhook 502s**
+→ Caddy's `request_body` cap might be too tight. Bump it in `Caddyfile` and reload Caddy. We default to 8MB which fits long transcripts.
 
 ---
 
-## 7. Going further
+## 8. Going further
 
-- **Single-tenant per business:** spin up one Railway project per customer, set their business name + Vapi assistant + DNS subdomain. Costs ~$15-30/mo per tenant.
-- **Multi-tenant SaaS:** add row-level filtering on `business_id` everywhere, add auth (NextAuth.js), and a billing layer (Stripe). Out of scope for this repo today.
-- **Self-host on VPS:** the existing `docker-compose.yml` is production-capable. Pop it on a $5 Hetzner box, add Caddy in front for HTTPS, point your DNS at the IP. Runs forever.
+- **Per-business deploys:** copy this stack onto a fresh VPS per customer with their own `.env` and DNS subdomain. Costs ~$10–20/mo per tenant.
+- **Multi-tenant SaaS:** add row-level filtering on `business_id` everywhere + auth (NextAuth.js or django-allauth) + Stripe billing. Out of scope for the OSS today.
+- **Self-host on your own laptop:** the dev `docker-compose.yml` already works. Add `ngrok http 8000` and Vapi can hit your laptop directly for development.
 
 Questions? Open an issue or [book a call](https://calendly.com/contact-codewithmuh/30min).
