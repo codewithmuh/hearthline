@@ -42,7 +42,23 @@ const MESSAGES: Array<{ msg: string; action: Action }> = [
   { msg: "Drain still backing up after yesterday's visit.", action: { kind: "appointment-booked" } },
 ];
 
-function pickRow(id: number): Row {
+function pickRowAt(id: number, idx: number): Row {
+  const [contact, contactSub] = NAMES[idx % NAMES.length];
+  const assistant = ASSISTANTS[idx % ASSISTANTS.length];
+  const m = MESSAGES[idx % MESSAGES.length];
+  return {
+    id,
+    contact,
+    contactSub,
+    assistant,
+    initial: assistant[0],
+    message: m.msg,
+    action: m.action,
+    ageSec: 0,
+  };
+}
+
+function pickRandomRow(id: number): Row {
   const [contact, contactSub] = NAMES[Math.floor(Math.random() * NAMES.length)];
   const assistant = ASSISTANTS[Math.floor(Math.random() * ASSISTANTS.length)];
   const m = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
@@ -58,8 +74,9 @@ function pickRow(id: number): Row {
   };
 }
 
+// Deterministic — same on server and client to avoid hydration mismatch.
 const INITIAL_ROWS: Row[] = Array.from({ length: 6 }).map((_, i) => ({
-  ...pickRow(i),
+  ...pickRowAt(i, i),
   ageSec: i * 60 + 10,
 }));
 
@@ -91,7 +108,7 @@ export default function MockDashboard() {
     const interval = setInterval(() => {
       setRows((prev) => {
         const aged = prev.map((r) => ({ ...r, ageSec: r.ageSec + 4 }));
-        const next = pickRow(idRef.current++);
+        const next = pickRandomRow(idRef.current++);
         return [next, ...aged].slice(0, 6);
       });
     }, 4500);

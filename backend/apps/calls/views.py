@@ -1,16 +1,12 @@
-"""Vapi + Twilio webhook handlers.
-
-These accept the provider's webhook payload, persist a Call row, and kick off
-the LLM pipeline that extracts structured lead data from the transcript.
-
-For local dev you'd point Vapi/Twilio webhook URLs at:
-    https://<ngrok-url>/api/calls/webhooks/vapi/
-    https://<ngrok-url>/api/calls/webhooks/twilio/
-"""
+"""Vapi + Twilio webhook handlers + custom-LLM chat completions endpoint."""
 from __future__ import annotations
 
 import json
+import logging
+import time
+import uuid
 
+from django.http import JsonResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics
@@ -18,12 +14,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.ai.services import extract_lead_from_transcript
+from apps.calls.agent.receptionist import handle_conversation_turn
 from apps.core.models import Business
-from apps.leads.models import Conversation, Customer, Lead, Message
 
 from .models import Call
 from .serializers import CallSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class CallList(generics.ListAPIView):
@@ -32,52 +29,180 @@ class CallList(generics.ListAPIView):
     permission_classes = [AllowAny]
 
 
+def _openai_to_claude(messages: list) -> list:
+    """Convert OpenAI-format messages to Claude-format messages, dropping system."""
+    out: list[dict] = []
+    for m in messages:
+        role = m.get("role", "")
+        content = m.get("content", "")
+        if role == "system":
+            continue
+        if role == "assistant":
+            out.append({"role": "assistant", "content": content or ""})
+        elif role in ("user", "human"):
+            out.append({"role": "user", "content": content or ""})
+    # Claude requires alternating roles; merge consecutive same-role messages
+    merged: list[dict] = []
+    for m in out:
+        if merged and merged[-1]["role"] == m["role"]:
+            merged[-1]["content"] = f"{merged[-1]['content']}\n{m['content']}"
+        else:
+            merged.append(m)
+    if merged and merged[0]["role"] != "user":
+        merged.insert(0, {"role": "user", "content": "Hello"})
+    return merged
+
+
+@csrf_exempt
+def chat_completions(request):
+    """OpenAI-compatible chat completions endpoint for Vapi's custom LLM mode.
+
+    Vapi POSTs the running conversation here on every turn; we run Anna's agentic
+    loop (Claude + tools) and return a single completion. SSE streaming supported.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    messages = data.get("messages", [])
+    caller_phone = None
+    call_data = data.get("call") or {}
+    if call_data:
+        caller_phone = (call_data.get("customer") or {}).get("number")
+    if not caller_phone:
+        caller_phone = (data.get("metadata") or {}).get("customerNumber")
+
+    logger.info("[CUSTOM LLM] %d messages, caller=%s", len(messages), caller_phone)
+    claude_messages = _openai_to_claude(messages)
+    if not claude_messages:
+        return JsonResponse({"error": "No messages"}, status=400)
+
+    try:
+        result = handle_conversation_turn(claude_messages, caller_phone=caller_phone)
+        text = result["text"]
+        end_call = result["end_call"]
+    except Exception as exc:  # noqa: BLE001
+        logger.error("[CUSTOM LLM ERROR] %s", exc)
+        text = "I'm sorry, I'm having a technical issue. Please call back in a moment."
+        end_call = False
+
+    if data.get("stream"):
+        return _stream(text, end_call)
+
+    return JsonResponse({
+        "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": "hearthline-claude",
+        "choices": [{
+            "index": 0,
+            "message": {"role": "assistant", "content": text},
+            "finish_reason": "stop",
+        }],
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+    })
+
+
+def _stream(text: str, end_call: bool):
+    completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+
+    def stream():
+        chunk = {
+            "id": completion_id,
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "hearthline-claude",
+            "choices": [{
+                "index": 0,
+                "delta": {"role": "assistant", "content": text},
+                "finish_reason": None,
+            }],
+        }
+        yield f"data: {json.dumps(chunk)}\n\n"
+        stop = {
+            "id": completion_id,
+            "object": "chat.completion.chunk",
+            "created": int(time.time()),
+            "model": "hearthline-claude",
+            "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+        }
+        yield f"data: {json.dumps(stop)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    resp = StreamingHttpResponse(stream(), content_type="text/event-stream")
+    if end_call:
+        resp["X-Vapi-End-Call"] = "true"
+    return resp
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class VapiWebhook(APIView):
     """Vapi posts call lifecycle events here.
 
-    Expected payload (simplified, see https://docs.vapi.ai/server-url):
-        { "type": "end-of-call-report", "call": {...}, "transcript": "...", ... }
+    We persist a Call row, and on `end-of-call-report` we capture the final
+    transcript + summary so the dashboard's recent calls panel updates.
     """
-
     permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok", "service": "Hearthline Vapi webhook"})
 
     def post(self, request):
         payload = request.data if isinstance(request.data, dict) else json.loads(request.body)
-        event_type = payload.get("type") or payload.get("message", {}).get("type")
-        call_data = payload.get("call") or payload.get("message", {}).get("call") or {}
+        message = payload.get("message") or payload
+        msg_type = message.get("type") or payload.get("type") or "unknown"
+        call_data = message.get("call") or payload.get("call") or {}
         provider_call_id = call_data.get("id") or payload.get("callId") or "unknown"
 
-        # Pick the first business for now (single-tenant local dev).
         business = Business.objects.first()
         if not business:
             return Response({"error": "no business configured"}, status=400)
+
+        from_number = (call_data.get("customer") or {}).get("number", "")
+        to_number = (call_data.get("phoneNumber") or {}).get("number", "")
+
+        transcript = message.get("transcript", "") or payload.get("transcript", "")
+        summary = message.get("summary", "") or payload.get("summary", "")
+        recording = call_data.get("recordingUrl", "")
+
+        duration = call_data.get("duration") or message.get("durationSeconds")
+        if not duration:
+            cost = message.get("costBreakdown") or {}
+            duration = cost.get("duration") or cost.get("durationSeconds")
+
+        status_map = {
+            "end-of-call-report": "completed",
+            "status-update": "in_progress",
+            "function-call": "in_progress",
+            "speech-update": "in_progress",
+            "hang": "completed",
+        }
 
         call, _ = Call.objects.update_or_create(
             provider="vapi",
             provider_call_id=provider_call_id,
             defaults={
                 "business": business,
-                "from_number": call_data.get("customer", {}).get("number", ""),
-                "to_number": call_data.get("phoneNumber", {}).get("number", ""),
-                "status": "completed" if event_type == "end-of-call-report" else "in_progress",
-                "transcript": payload.get("transcript", "") or payload.get("message", {}).get("transcript", ""),
-                "summary": payload.get("summary", "") or payload.get("message", {}).get("summary", ""),
-                "recording_url": call_data.get("recordingUrl", ""),
+                "from_number": from_number,
+                "to_number": to_number,
+                "status": status_map.get(msg_type, "in_progress"),
+                "duration_seconds": int(duration) if duration else None,
+                "recording_url": recording or "",
+                "transcript": transcript,
+                "summary": summary,
                 "raw_payload": payload,
             },
         )
-
-        if event_type == "end-of-call-report" and call.transcript:
-            _hydrate_lead_from_call(call)
-
+        logger.info("[VAPI] %s id=%s call=%s", msg_type, provider_call_id, call.id)
         return Response({"ok": True, "call_id": call.id})
 
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TwilioWebhook(APIView):
-    """Twilio voice/SMS webhook handler. Twilio posts form-encoded data."""
-
+    """Twilio voice/SMS webhook handler."""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -86,7 +211,6 @@ class TwilioWebhook(APIView):
         business = Business.objects.first()
         if not business:
             return Response({"error": "no business configured"}, status=400)
-
         call, _ = Call.objects.update_or_create(
             provider="twilio",
             provider_call_id=provider_call_id,
@@ -98,40 +222,4 @@ class TwilioWebhook(APIView):
                 "raw_payload": dict(data),
             },
         )
-
         return Response({"ok": True, "call_id": call.id})
-
-
-def _hydrate_lead_from_call(call: Call) -> None:
-    """Run the AI extraction pipeline and create / update a Lead from the call."""
-    extracted = extract_lead_from_transcript(call.transcript, business=call.business)
-
-    customer, _ = Customer.objects.get_or_create(
-        business=call.business,
-        phone=call.from_number or "",
-        defaults={
-            "name": extracted.get("customer_name", ""),
-            "email": extracted.get("customer_email", ""),
-            "address": extracted.get("address", ""),
-        },
-    )
-
-    lead = Lead.objects.create(
-        business=call.business,
-        customer=customer,
-        project_summary=extracted.get("project_summary", "")[:512],
-        status="qualifying",
-        temperature=extracted.get("temperature", "warm"),
-        estimated_value=extracted.get("estimated_value"),
-        extracted_fields=extracted,
-    )
-    call.lead = lead
-    call.save(update_fields=["lead"])
-
-    convo = Conversation.objects.create(lead=lead)
-    Message.objects.create(
-        conversation=convo,
-        direction="in",
-        role="customer",
-        body=call.transcript[:8000],
-    )

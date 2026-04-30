@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import ChatWidget from "./ChatWidget";
 import HeroBackdrop from "./HeroBackdrop";
+import HeroPipeline from "./HeroPipeline";
 import LiveTicker from "./LiveTicker";
 import MockDashboard from "./MockDashboard";
 import PhoneWidget from "./PhoneWidget";
@@ -149,135 +150,70 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* WORKFLOW */}
-        <section className="shell section-tight" id="workflow">
+        {/* HOW IT FLOWS — cartoon pipeline */}
+        <section className="shell section-tight" id="flow">
           <div className="section-head">
-            <h2 className="section-title">Communication workflows.</h2>
+            <h2 className="section-title">How a job flows through Hearthline.</h2>
             <p className="section-sub">
-              From simple call routing to multi-step processes — Hearthline adapts to your
-              business logic.
+              Five stages, fully automated. The customer never feels the handoffs —
+              they just get a quick answer, a quote, and a booked time slot.
             </p>
           </div>
+          <HeroPipeline />
+        </section>
 
-          <div className="workflow-tabs">
-            {[
-              { name: "Lead Prequalification", sub: "Intake & routing", active: true,
-                icon: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 2 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg> },
-              { name: "Support & Ticketing", sub: "Resolution & sync",
-                icon: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg> },
-              { name: "Order Management", sub: "Status & logistics",
-                icon: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg> },
-              { name: "Installation Booking", sub: "Scheduling & reminders",
-                icon: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-            ].map((t) => (
-              <div className={`workflow-tab ${t.active ? "active" : ""}`} key={t.name}>
-                <span className="workflow-tab-icon">{t.icon}</span>
-                <div>
-                  <span className="workflow-tab-name">{t.name}</span>
-                  <span className="workflow-tab-sub">{t.sub}</span>
-                </div>
-              </div>
-            ))}
+        {/* CONVERSATION SAMPLE */}
+        <section className="shell section-tight" id="workflow">
+          <div className="section-head">
+            <h2 className="section-title">A real conversation, not a chatbot script.</h2>
+            <p className="section-sub">
+              SMS thread between Hearthline and a customer. Quote drafted, deal created,
+              calendar booked — all auto.
+            </p>
           </div>
-
-          <div className="workflow-canvas">
-            {/* Visual node graph */}
-            <div className="workflow-graph">
-              <span className="workflow-live">
-                <span className="dot-pulse" /> Live Workflow
+          <div className="workflow-convo workflow-convo-solo">
+            <div className="workflow-convo-head">
+              <span className="workflow-convo-icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 2 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
               </span>
-
-              <div className="wgraph-node start">
-                <div className="wgraph-node-tag">
-                  <span className="wgraph-icon green">
-                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                  </span>
-                  Trigger
-                </div>
-                <div className="wgraph-node-title">Source Created</div>
-                <div className="wgraph-node-sub">Inbound Call · Vapi</div>
-              </div>
-
-              <div className="wgraph-edge" />
-
-              <div className="wgraph-row">
-                <div className="wgraph-node">
-                  <div className="wgraph-node-tag">
-                    <span className="wgraph-icon blue">
-                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11H1l8-8" /><path d="M9 13h8l-8 8" /></svg>
-                    </span>
-                    LLM Step
-                  </div>
-                  <div className="wgraph-node-title">Lead Qualification</div>
-                  <div className="wgraph-node-sub">Trade · Urgency · Value</div>
-                </div>
-                <div className="wgraph-node">
-                  <div className="wgraph-node-tag">
-                    <span className="wgraph-icon purple">
-                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                    </span>
-                    Action
-                  </div>
-                  <div className="wgraph-node-title">Audit Trigger</div>
-                  <div className="wgraph-node-sub">CRM · HubSpot</div>
-                </div>
-              </div>
-
-              <div className="wgraph-edge converge" />
-
-              <div className="wgraph-node end">
-                <div className="wgraph-node-tag">
-                  <span className="wgraph-icon orange">
-                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                  </span>
-                  Output
-                </div>
-                <div className="wgraph-node-title">Estimate Generated</div>
-                <div className="wgraph-node-sub">PDF · sent via SMS</div>
+              <div>
+                <h3>Inbound Lead Automation</h3>
+                <p>Qualifies the lead, syncs to CRM, drafts an estimate — automatically.</p>
               </div>
             </div>
 
-            {/* Conversation panel (right) */}
-            <div className="workflow-convo">
-              <div className="workflow-convo-head">
-                <span className="workflow-convo-icon">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 2 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+            <div className="workflow-thread">
+              <div className="workflow-msg in">
+                <span className="workflow-avatar">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
                 </span>
-                <div>
-                  <h3>Inbound Lead Automation</h3>
-                  <p>Qualifies new leads, creates CRM records, and sends preliminary estimates automatically.</p>
+                <div className="workflow-msg-bubble">
+                  I need to replace about 5 windows in my living room. Looking for white PVC.
                 </div>
               </div>
+              <div className="workflow-msg out">
+                <div className="workflow-msg-bubble">
+                  Understood. Based on standard sizing, that would start around $3,500. I've just
+                  texted you a detailed breakdown and a link to book the technician.
+                </div>
+                <span className="workflow-avatar ai">AI</span>
+              </div>
+            </div>
 
-              <div className="workflow-thread">
-                <div className="workflow-msg in">
-                  <span className="workflow-avatar">
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-7 8-7s8 3 8 7" /></svg>
-                  </span>
-                  <div className="workflow-msg-bubble">
-                    I need to replace about 5 windows in my living room. Looking for white PVC.
-                  </div>
-                </div>
-                <div className="workflow-msg out">
-                  <div className="workflow-msg-bubble">
-                    Understood. Based on standard sizing, that would start around $3,500. I've just
-                    texted you a detailed breakdown and a link to book the technician.
-                  </div>
-                  <span className="workflow-avatar ai">AI</span>
-                </div>
-              </div>
-
-              <div className="workflow-output-label">Output Result</div>
-              <div className="workflow-output-row">
-                <span className="action-pill quote">
-                  <span className="action-dot" style={{ background: "#7c3aed" }} />
-                  Estimate #E-291 · sent
-                </span>
-                <span className="action-pill booked">
-                  <span className="action-dot" style={{ background: "#2563eb" }} />
-                  Deal Created · HubSpot
-                </span>
-              </div>
+            <div className="workflow-output-label">Output Result</div>
+            <div className="workflow-output-row">
+              <span className="action-pill quote">
+                <span className="action-dot" style={{ background: "#7c3aed" }} />
+                Estimate #E-291 · sent
+              </span>
+              <span className="action-pill booked">
+                <span className="action-dot" style={{ background: "#2563eb" }} />
+                Deal Created · HubSpot
+              </span>
+              <span className="action-pill won">
+                <span className="action-dot" style={{ background: "#16a34a" }} />
+                Survey Booked · Tue 9:30 AM
+              </span>
             </div>
           </div>
         </section>

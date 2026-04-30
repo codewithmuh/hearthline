@@ -99,20 +99,54 @@ export default async function SettingsPage() {
             </article>
 
             <article className="dash-card">
-              <div className="dash-card-head"><h2>Webhooks</h2></div>
-              <ul className="dash-list">
+              <div className="dash-card-head">
+                <h2>Wire Vapi to Anna</h2>
+                <span className="dash-card-meta">3 steps</span>
+              </div>
+              <ol className="vapi-steps">
                 <li>
-                  <span className="dash-list-id">Vapi</span>
-                  <div className="dash-list-body">
-                    <div className="dash-list-title">POST <code>/api/calls/webhooks/vapi/</code></div>
-                    <div className="dash-list-meta">Receives end-of-call reports and triggers the AI extraction pipeline.</div>
+                  <strong>Expose your local backend.</strong> In a terminal:
+                  <pre className="codeblock codeblock-mini"><code>ngrok http 8000</code></pre>
+                  Copy the <code>https://*.ngrok-free.app</code> URL — that's your <code>BASE</code>.
+                </li>
+                <li>
+                  <strong>Create an Assistant on vapi.ai</strong> with model = <em>Custom LLM</em>.
+                  <div className="vapi-row">
+                    <span className="vapi-label">Custom LLM URL</span>
+                    <code className="vapi-url">{`{BASE}`}/api/calls/vapi/chat/completions/</code>
+                  </div>
+                  <div className="vapi-row">
+                    <span className="vapi-label">Model name</span>
+                    <code className="vapi-url">claude-sonnet-4-6</code>
+                  </div>
+                  <div className="vapi-row">
+                    <span className="vapi-label">First message</span>
+                    <code className="vapi-url">Hi, this is Anna at {biz.name}. How can I help you today?</code>
                   </div>
                 </li>
+                <li>
+                  <strong>Set the Server URL</strong> on the Assistant so end-of-call reports land in Hearthline:
+                  <div className="vapi-row">
+                    <span className="vapi-label">Server URL</span>
+                    <code className="vapi-url">{`{BASE}`}/api/calls/webhooks/vapi/</code>
+                  </div>
+                </li>
+              </ol>
+              <p className="vapi-hint">
+                After wiring, place a real test call to your Vapi phone number — Anna picks up,
+                runs <code>qualify_lead</code> + <code>book_appointment</code>, and the call lands
+                on the <a href="/dashboard/calls">Calls</a> page seconds after hangup.
+              </p>
+            </article>
+
+            <article className="dash-card">
+              <div className="dash-card-head"><h2>Other webhooks</h2></div>
+              <ul className="dash-list">
                 <li>
                   <span className="dash-list-id">Twilio</span>
                   <div className="dash-list-body">
                     <div className="dash-list-title">POST <code>/api/calls/webhooks/twilio/</code></div>
-                    <div className="dash-list-meta">Handles voice + SMS events from Twilio.</div>
+                    <div className="dash-list-meta">Voice + SMS events from Twilio (fallback / outbound SMS sender).</div>
                   </div>
                 </li>
                 <li>

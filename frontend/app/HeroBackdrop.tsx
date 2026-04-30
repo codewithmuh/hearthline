@@ -1,13 +1,23 @@
 // Decorative SVG layer for the hero — blueprint grid + sketched home-service motifs.
 // All elements are aria-hidden and pointer-events: none.
 
-const SKETCHES: Array<{ top: string; left?: string; right?: string; rotate: number; size: number; el: React.ReactNode }> = [
-  { top: "8%", left: "4%", rotate: -12, size: 96, el: <Wrench /> },
-  { top: "18%", right: "6%", rotate: 14, size: 88, el: <Ladder /> },
-  { top: "44%", left: "2%", rotate: -6, size: 110, el: <Roof /> },
-  { top: "52%", right: "3%", rotate: 8, size: 96, el: <Drill /> },
-  { top: "76%", left: "8%", rotate: 18, size: 80, el: <Pipe /> },
-  { top: "82%", right: "9%", rotate: -16, size: 84, el: <HardHat /> },
+const SKETCHES: Array<{
+  top: string;
+  left?: string;
+  right?: string;
+  rotate: number;
+  size: number;
+  duration: number;
+  delay: number;
+  drift: number;
+  el: React.ReactNode;
+}> = [
+  { top: "60px",  left: "-30px", rotate: -14, size: 110, duration: 7,   delay: 0,    drift: 26, el: <Wrench /> },
+  { top: "40px",  right: "-30px", rotate: 16,  size: 100, duration: 8.4, delay: -2,   drift: 30, el: <Ladder /> },
+  { top: "210px", left: "-40px", rotate: -6,  size: 130, duration: 9,   delay: -4,   drift: 34, el: <Roof /> },
+  { top: "190px", right: "-40px", rotate: 10,  size: 110, duration: 6.8, delay: -1.2, drift: 28, el: <Drill /> },
+  { top: "380px", left: "-20px", rotate: 18,  size: 96,  duration: 7.6, delay: -3,   drift: 30, el: <Pipe /> },
+  { top: "360px", right: "-20px", rotate: -18, size: 100, duration: 8,   delay: -5,   drift: 24, el: <HardHat /> },
 ];
 
 export default function HeroBackdrop() {
@@ -25,9 +35,12 @@ export default function HeroBackdrop() {
             top: s.top,
             left: s.left,
             right: s.right,
-            transform: `rotate(${s.rotate}deg)`,
             width: s.size,
             height: s.size,
+            ["--rot" as string]: `${s.rotate}deg`,
+            ["--drift" as string]: `${s.drift}px`,
+            animationDuration: `${s.duration}s`,
+            animationDelay: `${s.delay}s`,
           }}
         >
           {s.el}
@@ -37,7 +50,7 @@ export default function HeroBackdrop() {
   );
 }
 
-function strokeProps(width = 1.6) {
+function strokeProps(width = 2.2) {
   return {
     fill: "none" as const,
     stroke: "currentColor",

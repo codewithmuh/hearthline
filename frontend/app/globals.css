@@ -154,16 +154,24 @@ img { max-width: 100%; display: block; }
 
 /* ---- Hero (illustrated backdrop) ---- */
 .hero { padding: 88px 0 56px; text-align: center; position: relative; }
-.hero-illustrated { position: relative; isolation: isolate; }
+.hero-illustrated {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+}
 .hero-backdrop {
   position: absolute;
-  inset: -40px 0 -40px 0;
+  top: -40px;
+  left: 0;
+  right: 0;
+  bottom: -40px;
   pointer-events: none;
   z-index: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 .hero-illustrated > * { position: relative; z-index: 1; }
 .hero-illustrated .hero-backdrop { z-index: 0; }
+.hero-illustrated .mock-dashboard { z-index: 2; }
 
 /* Subtle blueprint grid */
 .hero-grid {
@@ -177,7 +185,7 @@ img { max-width: 100%; display: block; }
   mask-image: radial-gradient(ellipse at 50% 30%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 90%);
 }
 
-/* Faint architectural cross-section behind the dashboard mock */
+/* Architectural cross-section — gentle breath + sketched-on effect */
 .hero-house {
   position: absolute;
   bottom: 4%;
@@ -185,25 +193,70 @@ img { max-width: 100%; display: block; }
   transform: translateX(-50%);
   width: min(1200px, 110%);
   color: var(--ink);
-  opacity: 0.04;
+  opacity: 0.10;
   pointer-events: none;
+  animation: house-breath 9s ease-in-out infinite;
+}
+.hero-house path,
+.hero-house rect,
+.hero-house circle {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 0;
+  animation: house-draw 18s ease-in-out infinite;
+}
+.hero-house path:nth-child(2n) { animation-delay: -3s; }
+.hero-house path:nth-child(3n) { animation-delay: -6s; }
+.hero-house rect:nth-child(2n) { animation-delay: -2s; }
+@keyframes house-breath {
+  0%, 100% { opacity: 0.04; transform: translateX(-50%) scale(1); }
+  50% { opacity: 0.09; transform: translateX(-50%) scale(1.012); }
+}
+@keyframes house-draw {
+  0%   { stroke-dashoffset: 1200; }
+  35%  { stroke-dashoffset: 0; }
+  70%  { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -1200; }
 }
 
-/* Floating sketch tools */
+/* Floating + rotating sketch tools — animated background motifs */
 .sketch {
   position: absolute;
   display: block;
-  color: var(--ink);
-  opacity: 0.07;
+  color: var(--brand);
+  opacity: 0.32;
   pointer-events: none;
-  transition: opacity .3s ease;
+  animation-name: sketch-float;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+  will-change: transform;
+  z-index: 0;
 }
-.sketch svg { width: 100%; height: 100%; display: block; }
-.hero-illustrated:hover .sketch { opacity: 0.11; }
+.sketch svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.hero-illustrated:hover .sketch { opacity: 0.28; }
+
+/* Each sketch drifts using its own --rot anchor and --drift distance */
+@keyframes sketch-float {
+  0% {
+    transform: rotate(var(--rot, 0deg)) translateY(0);
+  }
+  50% {
+    transform: rotate(calc(var(--rot, 0deg) + 6deg)) translateY(calc(var(--drift, 12px) * -1));
+  }
+  100% {
+    transform: rotate(var(--rot, 0deg)) translateY(0);
+  }
+}
 
 @media (max-width: 720px) {
   .sketch { display: none; }
   .hero-house { opacity: 0.025; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sketch, .sketch svg, .hero-house { animation: none !important; }
 }
 .hero-eyebrow {
   display: inline-flex;
@@ -1013,6 +1066,100 @@ img { max-width: 100%; display: block; }
   font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
+}
+
+/* ============================================================
+   Hero Pipeline — cartoon flow strip under the CTAs
+   ============================================================ */
+.hpipe {
+  margin: 40px auto 0;
+  max-width: 1080px;
+  padding: 22px 18px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.hpipe-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  align-items: start;
+  position: relative;
+}
+@media (max-width: 880px) {
+  .hpipe-track { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .hpipe-arrow { display: none; }
+}
+.hpipe-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 10px;
+}
+.hpipe-stage-art {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 10px;
+  padding: 10px;
+  transition: transform .2s ease, background .2s ease;
+}
+.hpipe-stage:hover .hpipe-stage-art {
+  transform: translateY(-2px);
+  background: white;
+}
+.hpipe-stage-art svg { width: 100%; height: 100%; display: block; }
+.hpipe-stage-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.hpipe-stage-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.hpipe-arrow {
+  position: absolute;
+  top: 22px;
+  right: -22px;
+  width: 44px;
+  height: 22px;
+  color: var(--muted-2);
+  z-index: 1;
+}
+.hpipe-arrow path:first-child {
+  animation: hpipe-flow 2.4s linear infinite;
+}
+@keyframes hpipe-flow {
+  to { stroke-dashoffset: -24; }
+}
+.hpipe-halo {
+  transform-origin: center;
+  animation: hpipe-spin 18s linear infinite;
+}
+@keyframes hpipe-spin { to { transform: rotate(360deg); } }
+.hpipe-wave {
+  animation: hpipe-pulse 1.6s ease-in-out infinite;
+}
+@keyframes hpipe-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Slim solo conversation panel (replaces the heavy workflow canvas) */
+.workflow-convo-solo {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 /* ============================================================
@@ -3291,6 +3438,202 @@ img { max-width: 100%; display: block; }
   .print-only { display: flex; }
   .quote-doc-table .num { padding-right: 0 !important; }
 }
+
+/* ============================================================
+   Test-call panel (Anna live chat in dashboard)
+   ============================================================ */
+.testcall-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 980px) { .testcall-grid { grid-template-columns: 1.6fr 1fr; } }
+
+.testcall-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 560px;
+}
+.testcall-avatar {
+  width: 30px; height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d2532b 0%, #f08a3e 100%);
+  color: white;
+  display: grid; place-items: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+.testcall-thread {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 360px;
+}
+.testcall-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 420px;
+}
+.testcall-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  animation: bubble-in .25s ease;
+}
+.testcall-msg.user { flex-direction: row-reverse; }
+.testcall-msg-avatar {
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  display: grid; place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.testcall-msg.assistant .testcall-msg-avatar {
+  background: linear-gradient(135deg, #d2532b 0%, #f08a3e 100%);
+  border-color: transparent;
+  color: white;
+}
+.testcall-msg.user .testcall-msg-avatar {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+.testcall-msg-bubble {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 80%;
+  border-bottom-left-radius: 4px;
+}
+.testcall-msg.user .testcall-msg-bubble {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 4px;
+}
+.testcall-msg-bubble.typing { padding: 12px 16px; }
+
+.testcall-starters {
+  display: grid;
+  gap: 6px;
+}
+.testcall-starters button {
+  background: white;
+  border: 1px solid var(--border);
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  font-family: inherit;
+}
+.testcall-starters button:hover { border-color: var(--ink); }
+
+.testcall-input {
+  display: flex;
+  gap: 8px;
+}
+.testcall-input input {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+.testcall-input input:focus { border-color: var(--ink); }
+
+.testcall-side {
+  display: flex; flex-direction: column; gap: 16px;
+}
+.testcall-field {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ============================================================
+   Vapi setup card on Settings
+   ============================================================ */
+.vapi-steps {
+  list-style: none;
+  margin: 0; padding: 0;
+  counter-reset: step;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.vapi-steps > li {
+  position: relative;
+  padding-left: 44px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  counter-increment: step;
+}
+.vapi-steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0; top: 0;
+  width: 30px; height: 30px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: white;
+  display: grid; place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.vapi-steps strong { color: var(--ink); }
+.vapi-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12.5px;
+}
+.vapi-label {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10.5px;
+}
+.vapi-url {
+  background: var(--ink);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12.5px;
+  word-break: break-all;
+}
+.vapi-hint {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+.vapi-hint a { color: var(--brand); border-bottom: 1px solid currentColor; }
 
 /* Settings list */
 .settings-row {
