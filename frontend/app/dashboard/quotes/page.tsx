@@ -30,9 +30,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         </div>
         <div className="app-pagebar-actions">
           <a href="http://localhost:8000/admin/quotes/quote/" target="_blank" rel="noreferrer" className="btn btn-ghost">Open in admin ↗</a>
-          <button type="button" className="btn btn-primary" disabled title="Wire to /api/quotes/from-photo/">
-            + Draft from photo
-          </button>
+          <Link href="/dashboard/quotes/new" className="btn btn-primary">+ New quote</Link>
         </div>
       </div>
 

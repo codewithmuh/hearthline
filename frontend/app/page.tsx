@@ -45,23 +45,24 @@ export default function HomePage() {
       <main>
         {/* HERO */}
         <section className="shell hero">
-          <span className="hero-meet">
-            <span className="hero-meet-avatar">A</span>
-            <span>Meet Anna · your AI front desk</span>
+          <span className="hero-meet hero-meet-platform">
             <span className="dot-pulse" aria-hidden />
+            <span>For HVAC · Plumbing · Roofing · Solar · Reno</span>
           </span>
           <h1 className="hero-title">
-            From first ring<br />
-            to <span className="hero-title-em">final invoice.</span>
+            The 24/7 AI Front Desk<br />
+            <span className="hero-title-em">for Home Services.</span>
           </h1>
           <p className="hero-sub">
-            Hearthline runs your customer flow end to end — 24/7, in your brand voice.
+            Hearthline picks up every call, qualifies every lead, and turns a customer
+            photo into a real quote in under a minute. Your crew stays on the tools.
+            We run the front desk.
           </p>
           <div className="hero-actions">
-            <Link href="/dashboard" className="btn btn-primary">
-              Talk with Anna <span aria-hidden>→</span>
-            </Link>
-            <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn btn-ghost">Book a demo</a>
+            <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn btn-primary">
+              Book a demo <span aria-hidden>→</span>
+            </a>
+            <Link href="/dashboard" className="btn btn-ghost">See the live dashboard</Link>
           </div>
 
           <LiveTicker />
@@ -73,10 +74,10 @@ export default function HomePage() {
         {/* SECTION INTRO */}
         <section className="shell section-tight" id="features">
           <div className="section-head">
-            <h2 className="section-title">Hearthline turns every lead into a sales opportunity</h2>
+            <h2 className="section-title">Configure once. Captures every lead.</h2>
             <p className="section-sub">
-              Designed for home-service professionals. Our AI agents handle calls, qualify
-              prospects, and sync everything to your CRM — so you never miss a deal.
+              Set your business hours, pricing rules, and service area. Hearthline adapts
+              to your trade — from emergency plumbing at 2 AM to a $25k solar quote at noon.
             </p>
           </div>
         </section>
@@ -91,9 +92,9 @@ export default function HomePage() {
                   <span className="feature-num feature-num-active">01</span>
                 </div>
                 <p className="feature-active-body">
-                  Never miss a call again. Anna picks up every inbound within two rings,
+                  Never miss a call again. Hearthline picks up every inbound within two rings,
                   qualifies the lead in real time, and books the slot directly into your team's
-                  calendar — all in a voice that sounds like part of your brand.
+                  calendar — in a voice you choose, with the script your business runs on.
                 </p>
                 <Link href="/dashboard" className="feature-cta">
                   Explore <span aria-hidden>→</span>
@@ -279,27 +280,64 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* INDUSTRIES */}
-        <section className="shell section-tight">
+        {/* INDUSTRIES — wide flexibility */}
+        <section className="shell section-tight" id="industries">
           <div className="section-head">
-            <h2 className="section-title">Designed for your industry, built for results.</h2>
+            <h2 className="section-title">One platform. Every trade.</h2>
             <p className="section-sub">
-              Hearthline's pricing rules, dispatch logic, and workflows come pre-tuned for the
-              way home-service teams actually operate.
+              Pricing logic, scripts, and dispatch rules come pre-tuned for each trade — and
+              are fully editable. Don't see yours? Hearthline configures to any home-service
+              workflow.
             </p>
           </div>
-          <div className="industries-grid">
+          <div className="industries-grid industries-grid-wide">
             {[
-              { name: "Windows & Doors", body: "Automate quote requests, schedule measurements, manage installation bookings." },
-              { name: "HVAC & Plumbing", body: "Handle emergency calls 24/7, dispatch technicians, streamline maintenance contracts." },
-              { name: "Solar & Roofing", body: "Pre-qualify leads on roof type and bill, coordinate site surveys seamlessly." },
-              { name: "Energy Renovation", body: "Qualify insulation projects, manage energy audits, streamline subsidy applications." },
+              { name: "HVAC & Plumbing", emoji: "🔧", body: "Emergency-call routing 24/7, technician dispatch, maintenance contracts." },
+              { name: "Windows & Doors", emoji: "🪟", body: "Photo quoting, measurement scheduling, installation bookings." },
+              { name: "Solar & Roofing", emoji: "☀️", body: "Roof-type qualification, rebate matching, site-survey coordination." },
+              { name: "Energy Renovation", emoji: "🏠", body: "Insulation audits, subsidy applications, multi-step renovation flows." },
+              { name: "Garage & Shutters", emoji: "🚪", body: "Brand + model identification, repair vs replace triage, after-hours calls." },
+              { name: "Electrical", emoji: "⚡", body: "Emergency vs scheduled job triage, safety-warning scripts, smart-home upsells." },
+              { name: "Landscaping & Pools", emoji: "🌿", body: "Seasonal scheduling, recurring contracts, photo-based estimates." },
+              { name: "Cleaning & Restoration", emoji: "🧽", body: "Damage triage, insurance routing, recurring booking, before/after photos." },
+              { name: "Pest Control", emoji: "🐜", body: "Symptom triage, recurring contracts, neighbour-coverage upsell, follow-ups." },
             ].map((it) => (
               <div className="industry-card" key={it.name}>
+                <span className="industry-card-emoji" aria-hidden>{it.emoji}</span>
                 <h3>{it.name}</h3>
                 <p>{it.body}</p>
               </div>
             ))}
+          </div>
+          <p className="industries-note">
+            Plus: not in this list? Hearthline plugs into any workflow your team already
+            runs. <a href={DEMO_URL} target="_blank" rel="noreferrer">Tell us about yours</a>.
+          </p>
+        </section>
+
+        {/* CONFIGURABILITY HIGHLIGHT */}
+        <section className="shell section-tight">
+          <div className="config-band">
+            <div className="config-band-text">
+              <p className="section-eyebrow">Configurable end-to-end</p>
+              <h2 className="config-band-title">
+                Your voice. Your pricing. Your CRM. Your hours.
+              </h2>
+              <p className="config-band-body">
+                Pick from 30+ neural voices in 7 languages. Drop in your price book.
+                Connect HubSpot, Pipedrive, Salesforce, ServiceTitan, or your custom API.
+                Set business hours per channel. Hearthline runs on your rules — not the other
+                way around.
+              </p>
+            </div>
+            <ul className="config-knobs">
+              <li><span>Voice</span><strong>30+ neural · 7 languages</strong></li>
+              <li><span>Pricing</span><strong>Your price book · per-trade rules</strong></li>
+              <li><span>CRM</span><strong>HubSpot · Pipedrive · Salesforce · API</strong></li>
+              <li><span>Hours</span><strong>Per-channel · per-day · holidays</strong></li>
+              <li><span>Voice cloning</span><strong>Use your owner's voice (optional)</strong></li>
+              <li><span>Self-host</span><strong>MIT-licensed code on GitHub</strong></li>
+            </ul>
           </div>
         </section>
 
@@ -315,11 +353,11 @@ export default function HomePage() {
               of your leads, 24/7. Focus on your craft. We fill your schedule.
             </p>
             <div className="final-cta-actions">
-              <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn btn-onDark">
+              <a href={DEMO_URL} target="_blank" rel="noreferrer" className="btn btn-onDark btn-lg">
                 Book a demo <span aria-hidden>→</span>
               </a>
               <Link href="/dashboard" className="btn btn-onDark-ghost">
-                Talk with our AI receptionist
+                See the live dashboard
               </Link>
             </div>
           </div>
@@ -338,21 +376,20 @@ export default function HomePage() {
           </div>
           <div className="footer-col">
             <h5>Product</h5>
-            <a href="#features">Voice AI</a>
-            <a href="#features">Chat Assistant</a>
-            <a href="#features">Photo Quoting</a>
-            <a href="#features">CRM Sync</a>
+            <a href="#features">Features</a>
+            <a href="#industries">Industries</a>
+            <Link href="/dashboard">Dashboard</Link>
           </div>
           <div className="footer-col">
-            <h5>Company</h5>
-            <Link href="/dashboard">Dashboard</Link>
+            <h5>Resources</h5>
+            <Link href="/faq">FAQ</Link>
             <Link href="/docs">Docs</Link>
             <a href={DEMO_URL} target="_blank" rel="noreferrer">Book a demo</a>
           </div>
           <div className="footer-col">
             <h5>Legal</h5>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
           </div>
           <div className="footer-bottom">
             <span>© {new Date().getFullYear()} Hearthline.</span>

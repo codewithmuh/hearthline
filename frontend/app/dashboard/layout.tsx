@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Sidebar from "./Sidebar";
+import { DashGlobalTopbar } from "./Topbar";
 
 export const metadata: Metadata = {
   title: "Hearthline · Dashboard",
@@ -31,7 +32,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="app-shell">
       <Sidebar counts={{ leads, calls, quotes, businesses }} />
-      <div className="app-main">{children}</div>
+      <div className="app-main">
+        <DashGlobalTopbar />
+        {children}
+      </div>
     </div>
   );
 }
