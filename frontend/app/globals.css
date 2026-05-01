@@ -3765,27 +3765,131 @@ img { max-width: 100%; display: block; }
 /* Print: only the quote document is visible */
 .print-only { display: none; }
 @media print {
-  body { background: white; }
+  /* Page setup — give the printer real margins so nothing clips at the edges */
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    color: #0a0a0a;
+  }
+
+  /* Hide every chrome surface */
   .topbar-wrap, .app-sidebar, .dash-global-topbar, .app-pagebar,
   .nav, .footer, .chat-fab, .chat-teaser, .chat-panel,
+  .banner-error, .banner-ok,
   .no-print { display: none !important; }
-  .app-shell { display: block !important; }
-  .app-main { padding: 0 !important; }
-  .app-content { padding: 0 !important; }
+
+  /* Collapse the dashboard grid → flat single column at full width */
+  .app-shell {
+    display: block !important;
+    background: white !important;
+    min-height: 0 !important;
+  }
+  .app-main { padding: 0 !important; min-width: 0 !important; }
+  .app-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Old quote-doc layout (kept for backward compat) */
   .quote-doc {
     border: none !important;
     box-shadow: none !important;
-    max-width: 100%;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0 !important;
+    margin: 0 !important;
   }
-  .quote-input {
+  .quote-row-remove, .quote-add-row { display: none !important; }
+  .quote-doc-table .num { padding-right: 0 !important; }
+  .print-only { display: flex; }
+
+  /* New professional invoice layout — full width, no shadows, no banding */
+  .invoice {
+    border: none !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    /* Allow the invoice to span pages naturally — clean breaks below */
+  }
+  .invoice-head, .invoice-meta { page-break-inside: avoid; break-inside: avoid; }
+  .invoice-table thead { display: table-header-group; }
+  .invoice-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .invoice-foot { page-break-inside: avoid; break-inside: avoid; }
+  .invoice-totals { page-break-inside: avoid; break-inside: avoid; }
+  .invoice-head {
+    padding-bottom: 18px !important;
+    margin-bottom: 22px !important;
+    border-bottom: 2px solid #0a0a0a !important;
+  }
+  .invoice-meta { margin-bottom: 26px !important; gap: 22px !important; }
+  .invoice-meta-dl dd { text-align: right !important; }
+  .invoice-table tbody tr:nth-child(odd) td { background: white !important; }
+  .invoice-table thead th {
+    background: white !important;
+    border-bottom: 1px solid #0a0a0a !important;
+  }
+  .invoice-totals {
+    background: white !important;
+    border: 1px solid #0a0a0a !important;
+  }
+  .invoice-totals-grand {
+    border-top-color: #0a0a0a !important;
+  }
+  .invoice-totals-grand span:last-child {
+    color: #0a0a0a !important; /* no brand orange in print — black ink reads cleaner */
+  }
+  .invoice-terms {
+    background: white !important;
+    border-left-color: #0a0a0a !important;
+  }
+  .invoice-footer {
+    page-break-inside: avoid;
+  }
+
+  /* Editable inputs render as plain printed text */
+  .quote-input,
+  .quote-input-num,
+  .quote-input-area,
+  .invoice-notes-input,
+  .text-input,
+  select.text-input,
+  .select-inline {
     border: none !important;
     background: transparent !important;
     padding: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    font-size: inherit !important;
+    color: #0a0a0a !important;
   }
-  .quote-row-remove, .quote-add-row { display: none !important; }
-  .print-only { display: flex; }
-  .quote-doc-table .num { padding-right: 0 !important; }
+  .quote-input-num { width: auto !important; min-width: 60px; }
+  textarea.quote-input,
+  textarea.invoice-notes-input {
+    resize: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Hide the dropdown arrow on the bill-to select on the new-quote page */
+  select.text-input { background-image: none !important; padding-right: 0 !important; }
+  /* Pills should still print with their tone, but use ink for safety */
+  .pill, .tag { border: 1px solid #d6d6d0 !important; background: white !important; color: #0a0a0a !important; }
+
+  /* Make sure browsers actually print backgrounds we rely on if needed */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 /* ============================================================

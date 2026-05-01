@@ -1,11 +1,13 @@
 """Vapi + Twilio webhook handlers + custom-LLM chat completions endpoint."""
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import time
 import uuid
 
+from django.conf import settings
 from django.http import JsonResponse, StreamingHttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +23,59 @@ from .models import Call
 from .serializers import CallSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def _verify_vapi_signature(request) -> bool:
+    """Vapi posts a shared secret in the `x-vapi-secret` header.
+
+    Returns True if VAPI_WEBHOOK_SECRET is unset (dev) OR the header matches.
+    Returns False only when a secret is configured AND the header is wrong.
+    """
+    expected = (settings.VAPI_WEBHOOK_SECRET or "").strip()
+    if not expected:
+        return True  # not configured — accept (dev mode)
+    received = request.headers.get("X-Vapi-Secret", "") or request.headers.get("X-Vapi-Signature", "")
+    return hmac.compare_digest(expected, received)
+
+
+def _verify_twilio_signature(request) -> bool:
+    """Twilio posts an HMAC-SHA1 of the URL+body in `X-Twilio-Signature`.
+
+    Verifies via the official twilio.request_validator helper. Skipped when
+    TWILIO_AUTH_TOKEN is unset.
+    """
+    token = (settings.TWILIO_AUTH_TOKEN or "").strip()
+    if not token:
+        return True
+    try:
+        from twilio.request_validator import RequestValidator
+    except ImportError:
+        logger.warning("twilio package missing — skipping signature check")
+        return True
+    validator = RequestValidator(token)
+    signature = request.headers.get("X-Twilio-Signature", "")
+    url = request.build_absolute_uri()
+    params = request.POST.dict() if request.method == "POST" else {}
+    return validator.validate(url, params, signature)
+
+
+def _verify_chat_completions_secret(request) -> bool:
+    """Vapi's custom-LLM endpoint shares the same VAPI_WEBHOOK_SECRET.
+
+    Public-facing endpoint — anyone can hit it without auth, so the shared
+    secret is the only thing keeping a stranger from spending the tenant's
+    Anthropic credits. In dev (no secret set) we accept everything.
+    """
+    expected = (settings.VAPI_WEBHOOK_SECRET or "").strip()
+    if not expected:
+        return True
+    # Vapi sends it as a Bearer token on the custom-LLM endpoint.
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        received = auth[7:].strip()
+    else:
+        received = request.headers.get("X-Vapi-Secret", "")
+    return hmac.compare_digest(expected, received)
 
 
 class CallList(generics.ListAPIView):
@@ -62,6 +117,9 @@ def chat_completions(request):
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
+    if not _verify_chat_completions_secret(request):
+        logger.warning("[CUSTOM LLM] Unauthorized — bad/missing shared secret")
+        return JsonResponse({"error": "unauthorized"}, status=401)
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -151,6 +209,9 @@ class VapiWebhook(APIView):
         return Response({"status": "ok", "service": "Hearthline Vapi webhook"})
 
     def post(self, request):
+        if not _verify_vapi_signature(request):
+            logger.warning("[VAPI] rejected webhook — bad shared secret")
+            return Response({"error": "unauthorized"}, status=401)
         payload = request.data if isinstance(request.data, dict) else json.loads(request.body)
         message = payload.get("message") or payload
         msg_type = message.get("type") or payload.get("type") or "unknown"
@@ -206,6 +267,9 @@ class TwilioWebhook(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        if not _verify_twilio_signature(request):
+            logger.warning("[TWILIO] rejected webhook — bad signature")
+            return Response({"error": "unauthorized"}, status=401)
         data = request.data
         provider_call_id = data.get("CallSid") or data.get("MessageSid") or "unknown"
         business = Business.objects.first()

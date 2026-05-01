@@ -34,9 +34,20 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from django.conf import settings
+
         username = options["username"]
         email = options["email"]
         password = options["password"]
+
+        # Hard-fail in production: never let the default 'hearthline' password
+        # ship to a non-DEBUG environment.
+        if not settings.DEBUG and password == "hearthline":
+            raise SystemExit(
+                "Refusing to seed admin with the default 'hearthline' password "
+                "in a non-DEBUG environment. Set HEARTHLINE_ADMIN_PASSWORD or "
+                "pass --password=<strong-password>."
+            )
 
         User = get_user_model()
         user, created = User.objects.get_or_create(

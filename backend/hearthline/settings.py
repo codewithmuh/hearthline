@@ -24,7 +24,18 @@ INSTALLED_APPS = [
     "apps.calls",
     "apps.quotes",
     "apps.ai",
+    "django_ratelimit",
 ]
+
+# Local-memory cache for django-ratelimit. Per-process; for multi-worker
+# production, swap to Redis/Memcached and remove the silenced check below.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "hearthline-default",
+    },
+}
+SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003", "django_ratelimit.W001"]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -155,3 +166,25 @@ VAPI_WEBHOOK_SECRET = os.environ.get("VAPI_WEBHOOK_SECRET", "")
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
 TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
+
+# ----- Production hard-fail guards ---------------------------------------
+# Refuse to boot when DEBUG=0 with insecure defaults still in place. Prevents
+# the entire class of "shipped to prod with dev secrets" outages.
+if not DEBUG:
+    if SECRET_KEY == "dev-only-not-for-production":
+        raise RuntimeError(
+            "DJANGO_SECRET_KEY is not set. Refusing to start with the dev fallback."
+        )
+    if not os.environ.get("HEARTHLINE_ENCRYPTION_KEY", "").strip():
+        raise RuntimeError(
+            "HEARTHLINE_ENCRYPTION_KEY is not set. API keys would be encrypted "
+            "with a SECRET_KEY-derived dev fallback — refusing to start. "
+            "Generate one with: "
+            "python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
+        )
+    if not VAPI_WEBHOOK_SECRET:
+        # Soft warning: webhook signature verification is skipped without it.
+        import logging as _lg
+        _lg.getLogger(__name__).warning(
+            "VAPI_WEBHOOK_SECRET is not set in prod — webhook signatures will not be verified."
+        )

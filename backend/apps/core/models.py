@@ -1,5 +1,7 @@
 from django.db import models
 
+from .crypto import EncryptedCharField
+
 
 class Business(models.Model):
     """A home-services business using Hearthline."""
@@ -27,13 +29,14 @@ class Business(models.Model):
     )
 
     # Provider credentials. When set, override the global env-var defaults.
-    anthropic_api_key = models.CharField(max_length=255, blank=True, default="")
-    openai_api_key = models.CharField(max_length=255, blank=True, default="")
-    vapi_api_key = models.CharField(max_length=255, blank=True, default="")
-    vapi_phone_number_id = models.CharField(max_length=128, blank=True, default="")
-    twilio_account_sid = models.CharField(max_length=128, blank=True, default="")
-    twilio_auth_token = models.CharField(max_length=255, blank=True, default="")
-    twilio_from_number = models.CharField(max_length=32, blank=True, default="")
+    # Encrypted at rest via Fernet (apps.core.crypto.EncryptedCharField).
+    anthropic_api_key = EncryptedCharField(blank=True, default="")
+    openai_api_key = EncryptedCharField(blank=True, default="")
+    vapi_api_key = EncryptedCharField(blank=True, default="")
+    vapi_phone_number_id = EncryptedCharField(blank=True, default="")
+    twilio_account_sid = EncryptedCharField(blank=True, default="")
+    twilio_auth_token = EncryptedCharField(blank=True, default="")
+    twilio_from_number = models.CharField(max_length=32, blank=True, default="")  # not a secret
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

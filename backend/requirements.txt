@@ -10,3 +10,5 @@ requests==2.32.3
 gunicorn==23.0.0
 whitenoise==6.8.2
 dj-database-url==2.3.0
+cryptography==44.0.0
+django-ratelimit==4.1.0
