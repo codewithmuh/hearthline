@@ -214,15 +214,32 @@ type KeyRow = {
 
 function ApiKeysCard({ business }: { business: Business }) {
   const router = useRouter();
-  const rows: KeyRow[] = [
-    { field: "anthropic_api_key", label: "Anthropic API key", hint: "Required — Claude powers Anna and lead extraction.", configured: business.has_anthropic_key, masked: business.anthropic_api_key },
-    { field: "openai_api_key", label: "OpenAI API key", hint: "Powers vision-based photo-to-quote drafting.", configured: business.has_openai_key, masked: business.openai_api_key },
+  const provider = business.llm_provider || "anthropic";
+  const usingOpenAI = provider === "openai";
+  const allRows: (KeyRow & { hidden?: boolean })[] = [
+    {
+      field: "anthropic_api_key",
+      label: "Anthropic API key",
+      hint: "Required — Claude powers Anna, lead extraction, and photo-to-quote vision.",
+      configured: business.has_anthropic_key,
+      masked: business.anthropic_api_key,
+      hidden: usingOpenAI,
+    },
+    {
+      field: "openai_api_key",
+      label: "OpenAI API key",
+      hint: "Required — GPT powers Anna, lead extraction, and photo-to-quote vision.",
+      configured: business.has_openai_key,
+      masked: business.openai_api_key,
+      hidden: !usingOpenAI,
+    },
     { field: "vapi_api_key", label: "Vapi API key", hint: "For programmatic call placement (optional).", configured: business.has_vapi_key, masked: business.vapi_api_key },
     { field: "vapi_phone_number_id", label: "Vapi phone number ID", hint: "Public number Vapi answers on.", configured: !!business.vapi_phone_number_id, masked: business.vapi_phone_number_id },
     { field: "twilio_account_sid", label: "Twilio Account SID", hint: "Twilio voice + SMS fallback.", configured: !!business.twilio_account_sid, masked: business.twilio_account_sid },
     { field: "twilio_auth_token", label: "Twilio Auth token", hint: "", configured: business.has_twilio_creds, masked: business.twilio_auth_token },
     { field: "twilio_from_number", label: "Twilio from number", hint: "Outbound caller ID.", configured: !!business.twilio_from_number, masked: business.twilio_from_number },
   ];
+  const rows: KeyRow[] = allRows.filter((r) => !r.hidden);
 
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -270,6 +287,20 @@ function ApiKeysCard({ business }: { business: Business }) {
     router.refresh();
   }
 
+  async function setProvider(next: "anthropic" | "openai") {
+    if (next === provider) return;
+    setSaving(true);
+    setError(null);
+    const res = await patchBusiness(business.id, { llm_provider: next });
+    setSaving(false);
+    if (!res.ok) {
+      setError(res.error ?? "Failed to switch provider");
+      return;
+    }
+    setSavedAt(new Date());
+    router.refresh();
+  }
+
   return (
     <article className="dash-card settings-keys">
       <div className="dash-card-head">
@@ -280,6 +311,38 @@ function ApiKeysCard({ business }: { business: Business }) {
           {!error && !savedAt && dirty && <span className="settings-saved-dirty">{Object.values(drafts).filter(Boolean).length} key(s) staged</span>}
         </div>
       </div>
+
+      <div className="provider-toggle" role="radiogroup" aria-label="LLM provider for Anna">
+        <span className="provider-toggle-label">LLM provider</span>
+        <div className="provider-toggle-options">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={provider === "anthropic"}
+            className={`provider-pill ${provider === "anthropic" ? "is-active" : ""}`}
+            onClick={() => setProvider("anthropic")}
+            disabled={saving}
+          >
+            <strong>Claude</strong>
+            <span>Anthropic · {`claude-sonnet-4-6`}</span>
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={provider === "openai"}
+            className={`provider-pill ${provider === "openai" ? "is-active" : ""}`}
+            onClick={() => setProvider("openai")}
+            disabled={saving}
+          >
+            <strong>OpenAI</strong>
+            <span>GPT · gpt-4o</span>
+          </button>
+        </div>
+        <p className="provider-toggle-hint">
+          Powers Anna, lead extraction, and photo-to-quote vision. Switch any time — the unused provider&apos;s key isn&apos;t needed.
+        </p>
+      </div>
+
       <p className="settings-keys-hint">
         Stored encrypted-at-rest in your Postgres. Per-business keys override the server&apos;s
         env-var defaults. Leave a field blank to keep the existing value.

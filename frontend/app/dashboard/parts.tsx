@@ -1,4 +1,4 @@
-import { fmtMoney, type Lead } from "./lib";
+import { fmtMoney, type Lead } from "./format";
 
 export function LeadActionPill({ lead }: { lead: Lead }) {
   const status = lead.status;

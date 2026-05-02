@@ -55,6 +55,7 @@ class BusinessSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "slug", "trade", "timezone",
             "phone_number", "voice_persona", "knowledge_base",
+            "llm_provider",
             "anthropic_api_key", "openai_api_key", "vapi_api_key",
             "vapi_phone_number_id", "twilio_account_sid", "twilio_auth_token",
             "twilio_from_number",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { fetchJson, fmtAge, fmtMoney, type Lead, type Page } from "../lib";
-import { LeadActionPill } from "../parts";
+import { fetchJson, type Lead, type Page } from "../lib";
+import LeadsTable from "./LeadsTable";
 
 const STATUSES = ["all", "new", "qualifying", "quoted", "booked", "won", "lost"];
 
@@ -60,40 +60,7 @@ export default async function LeadsPage({
           </div>
         </form>
 
-        <section className="app-table">
-          <div className="app-table-head">
-            <span>Customer</span>
-            <span>Project</span>
-            <span>Value</span>
-            <span style={{ textAlign: "right" }}>Status</span>
-          </div>
-          {leads.length === 0 ? (
-            <div className="empty-card" style={{ borderRadius: 0, border: "none", background: "white" }}>
-              <h3>No leads match these filters</h3>
-              <p>Clear filters or seed demo data with <code>seed_demo</code>.</p>
-            </div>
-          ) : (
-            leads.map((lead) => (
-              <Link href={`/dashboard/leads/${lead.id}`} key={lead.id} className="app-table-row">
-                <div className="app-row-customer">
-                  <span className="app-row-avatar">{(lead.customer?.name || "?").slice(0, 1).toUpperCase()}</span>
-                  <div>
-                    <div className="app-row-title">{lead.customer?.name || "Unknown"}</div>
-                    <div className="app-row-sub">{lead.customer?.phone || lead.customer?.email || "—"}</div>
-                  </div>
-                </div>
-                <div>
-                  <div className="app-row-title app-row-title-soft">{lead.project_summary || "(no summary)"}</div>
-                  <div className="app-row-sub">{fmtAge(lead.created_at)} · {lead.temperature}</div>
-                </div>
-                <div className="app-row-value">{fmtMoney(lead.estimated_value)}</div>
-                <div className="app-row-action">
-                  <LeadActionPill lead={lead} />
-                </div>
-              </Link>
-            ))
-          )}
-        </section>
+        <LeadsTable leads={leads} />
       </div>
     </>
   );

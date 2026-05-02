@@ -128,18 +128,24 @@ def chat_completions(request):
     messages = data.get("messages", [])
     caller_phone = None
     call_data = data.get("call") or {}
+    call_id = (call_data.get("id") or "").strip() or None
     if call_data:
         caller_phone = (call_data.get("customer") or {}).get("number")
     if not caller_phone:
         caller_phone = (data.get("metadata") or {}).get("customerNumber")
 
+    # Vapi posts status-update / function-call events to the same URL with no
+    # `messages` array. Acknowledge with 200 so it doesn't retry-spam the log.
+    if not messages:
+        return JsonResponse({"ok": True, "ignored": "no messages payload"})
+
     logger.info("[CUSTOM LLM] %d messages, caller=%s", len(messages), caller_phone)
     claude_messages = _openai_to_claude(messages)
     if not claude_messages:
-        return JsonResponse({"error": "No messages"}, status=400)
+        return JsonResponse({"ok": True, "ignored": "no convertible messages"})
 
     try:
-        result = handle_conversation_turn(claude_messages, caller_phone=caller_phone)
+        result = handle_conversation_turn(claude_messages, caller_phone=caller_phone, call_id=call_id)
         text = result["text"]
         end_call = result["end_call"]
     except Exception as exc:  # noqa: BLE001

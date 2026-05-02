@@ -49,11 +49,13 @@ img { max-width: 100%; display: block; }
 .topbar-wrap {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 100;
+  isolation: isolate;
   background: rgba(255, 255, 255, 0.85);
   -webkit-backdrop-filter: saturate(160%) blur(10px);
   backdrop-filter: saturate(160%) blur(10px);
   border-bottom: 1px solid var(--border);
+  overflow: visible;
 }
 .topbar {
   max-width: 1480px;
@@ -5064,10 +5066,188 @@ select.text-input { cursor: pointer; appearance: none; background-image: url("da
 }
 .app-row-action { justify-self: end; }
 
+/* Ensure grid children can shrink so ellipsis kicks in on long values */
+.app-table-row > * { min-width: 0; }
+
+/* Header column alignment helpers */
+.app-table-head .col-right { text-align: right; }
+
+/* Right-align numeric value column */
+.app-row-value { text-align: right; }
+
+/* Customer cell — let the name/phone text block shrink and ellipsize */
+.app-row-customer-text { min-width: 0; flex: 1; }
+
+/* Project summary — clamp to two lines so very long blurbs don't blow up row height */
+.app-row-project .app-row-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Leads variant — tighter status column since it holds a pill */
+.app-table-head.cols-leads,
+.app-table-row.cols-leads {
+  grid-template-columns: 1.5fr 2.2fr 0.8fr 0.8fr;
+}
+
+/* Leads variant with select-checkbox + per-row delete button */
+.app-table-head.cols-leads-select,
+.app-table-row.cols-leads-select {
+  grid-template-columns: 28px 1.5fr 2.2fr 0.8fr 0.8fr 28px;
+}
+.app-table-row.cols-leads-select { padding: 10px 14px 10px 14px; }
+.app-table-row.cols-leads-select.is-selected { background: rgba(210, 83, 43, 0.05); }
+
+/* Make the link cells inside a selectable row inherit row styling */
+.leads-row-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.leads-row-link.app-row-action { justify-self: end; }
+.leads-row-link.app-row-value { justify-content: flex-end; }
+.leads-row-link.app-row-project { display: block; }
+.leads-row-link:hover { color: inherit; text-decoration: none; }
+
+/* Checkbox cell */
+.leads-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.leads-checkbox input {
+  width: 15px; height: 15px;
+  accent-color: var(--brand);
+  cursor: pointer;
+  margin: 0;
+}
+.leads-row-check { gap: 0; }
+
+/* Bulk action bar above the table */
+.leads-bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: white;
+  border: 1px solid rgba(232, 232, 227, 0.8);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.leads-bulkbar-left { display: flex; align-items: center; gap: 12px; }
+.leads-bulkbar-right { display: flex; align-items: center; gap: 8px; }
+
+/* Per-row delete button */
+.leads-row-delete {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  justify-self: end;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.leads-row-delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
+}
+.leads-row-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Danger button variants */
+.btn-danger {
+  background: #b91c1c;
+  color: white;
+  border: 1px solid #b91c1c;
+}
+.btn-danger:hover { background: #991b1b; color: white; }
+.btn-danger-ghost {
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.3);
+  background: transparent;
+}
+.btn-danger-ghost:hover { background: rgba(185, 28, 28, 0.08); color: #991b1b; }
+
+.leads-error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid rgba(185, 28, 28, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+[data-theme="dark"] .leads-bulkbar {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--ink-2);
+}
+[data-theme="dark"] .leads-checkbox { color: var(--muted); }
+[data-theme="dark"] .app-table-row.cols-leads-select.is-selected {
+  background: rgba(240, 138, 74, 0.08);
+}
+[data-theme="dark"] .leads-row-delete { color: var(--muted); }
+[data-theme="dark"] .leads-row-delete:hover {
+  background: rgba(185, 28, 28, 0.18);
+  color: #fca5a5;
+  border-color: rgba(185, 28, 28, 0.4);
+}
+[data-theme="dark"] .btn-danger-ghost {
+  color: #fca5a5;
+  border-color: rgba(252, 165, 165, 0.3);
+}
+[data-theme="dark"] .btn-danger-ghost:hover {
+  background: rgba(185, 28, 28, 0.15);
+  color: #fecaca;
+}
+[data-theme="dark"] .leads-error {
+  background: rgba(185, 28, 28, 0.15);
+  color: #fecaca;
+  border-color: rgba(185, 28, 28, 0.4);
+}
+
 /* Provider variant for calls page (caller, provider chip, summary, status) */
 .app-table-head.cols-calls,
 .app-table-row.cols-calls {
   grid-template-columns: 1.2fr 0.6fr 2fr 1fr;
+}
+
+/* In-table empty state — drops the dashed-card chrome when nested in .app-table */
+.app-table-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.app-table-empty h3 {
+  margin: 0 0 6px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.app-table-empty p { margin: 0; font-size: 13px; }
+.app-table-empty code {
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  font-size: 12px;
 }
 
 /* Mobile — list pages */
@@ -5082,6 +5262,18 @@ select.text-input { cursor: pointer; appearance: none; background-image: url("da
   .app-table-row > *:nth-child(3) { order: 4; font-size: 12.5px; color: var(--muted); }
   .app-row-customer { order: 1; }
   .app-row-action { order: 2; align-self: start; }
+
+  /* Selectable leads variant: checkbox(1) | customer(2) | action(5) | delete(6) on top row */
+  .app-table-row.cols-leads-select {
+    grid-template-columns: 24px 1fr auto auto;
+  }
+  .app-table-row.cols-leads-select > *:nth-child(1) { order: 1; }
+  .app-table-row.cols-leads-select > *:nth-child(2) { order: 2; grid-column: auto; }
+  .app-table-row.cols-leads-select > *:nth-child(3) { order: 5; grid-column: 1 / -1; }
+  .app-table-row.cols-leads-select > *:nth-child(4) { order: 6; grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+  .app-table-row.cols-leads-select > *:nth-child(5) { order: 3; }
+  .app-table-row.cols-leads-select > *:nth-child(6) { order: 4; }
+  .leads-bulkbar { flex-wrap: wrap; padding: 10px; }
 }
 
 @media (max-width: 720px) {
@@ -6194,6 +6386,63 @@ select.text-input { cursor: pointer; appearance: none; background-image: url("da
 }
 
 /* ============================================================
+   Provider toggle (LLM choice)
+   ============================================================ */
+.provider-toggle {
+  margin: 6px 0 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.provider-toggle-label {
+  display: block;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.provider-toggle-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.provider-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+.provider-pill:hover { border-color: var(--border-strong); }
+.provider-pill strong { font-size: 13.5px; color: var(--ink); }
+.provider-pill span { font-size: 11.5px; color: var(--ink-muted); }
+.provider-pill.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+.provider-pill.is-active strong,
+.provider-pill.is-active span { color: #ffffff; }
+.provider-pill[disabled] { opacity: 0.6; cursor: not-allowed; }
+.provider-toggle-hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+[data-theme="dark"] .provider-pill { background: var(--surface-3); }
+[data-theme="dark"] .provider-pill.is-active { background: var(--brand); border-color: var(--brand); }
+
+/* ============================================================
    Google Translate Element — hide its UI, keep our switcher
    ============================================================ */
 .goog-te-banner-frame,
@@ -6220,6 +6469,7 @@ font[style*="background-color"] { background: transparent !important; box-shadow
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
+  z-index: 80;
 }
 .lang-switch-btn {
   display: inline-flex;
@@ -6245,14 +6495,14 @@ font[style*="background-color"] { background: transparent !important; box-shadow
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 50;
+  z-index: 1200;
   min-width: 200px;
   max-height: 360px;
   overflow-y: auto;
   margin: 0;
   padding: 6px;
   list-style: none;
-  background: var(--surface-1);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 12px 36px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
@@ -6931,6 +7181,13 @@ html[dir="rtl"] .pipeline-num { direction: ltr; unicode-bidi: isolate; }
   background: linear-gradient(135deg, rgba(210, 83, 43, 0.32), rgba(240, 138, 62, 0.18));
   color: #ffc8a3;
   border-color: rgba(210, 83, 43, 0.32);
+}
+[data-theme="dark"] .app-table-empty { color: var(--muted); }
+[data-theme="dark"] .app-table-empty h3 { color: var(--ink); }
+[data-theme="dark"] .app-table-empty code {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--ink-2);
 }
 
 /* Detail cards (lead / call / quote detail) */

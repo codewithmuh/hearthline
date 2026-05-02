@@ -14,6 +14,11 @@ class Business(models.Model):
         ("general", "General Contractor"),
     ]
 
+    LLM_PROVIDER_CHOICES = [
+        ("anthropic", "Anthropic Claude"),
+        ("openai", "OpenAI GPT"),
+    ]
+
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     trade = models.CharField(max_length=32, choices=TRADE_CHOICES, default="general")
@@ -26,6 +31,13 @@ class Business(models.Model):
     knowledge_base = models.TextField(
         blank=True,
         help_text="Pricing rules, FAQ, service area — fed to the LLM as system prompt context",
+    )
+
+    llm_provider = models.CharField(
+        max_length=16,
+        choices=LLM_PROVIDER_CHOICES,
+        default="anthropic",
+        help_text="Which LLM powers Anna and lead extraction.",
     )
 
     # Provider credentials. When set, override the global env-var defaults.

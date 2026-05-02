@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 CLAUDE_MODEL = "claude-sonnet-4-6"
+OPENAI_TEXT_MODEL = "gpt-4o"
 OPENAI_VISION_MODEL = "gpt-4o-mini"
 
 
@@ -79,23 +80,47 @@ Return ONLY the JSON object. No prose, no code fences."""
 
 
 def extract_lead_from_transcript(transcript: str, business=None) -> dict[str, Any]:
-    """Run Claude over the transcript and return structured lead data.
+    """Run the configured LLM over the transcript and return structured lead data.
 
-    Falls back to an empty stub when no API key is configured so the rest of
-    the pipeline keeps working in local dev.
+    Dispatches to OpenAI or Claude based on `business.llm_provider`. Falls back
+    to an empty stub when no API key is configured so the rest of the pipeline
+    keeps working in local dev.
     """
     if not transcript.strip():
         return _empty_extract()
 
-    client = _claude_client(business)
-    if not client:
-        logger.info("ANTHROPIC_API_KEY missing — returning stub lead extract")
-        return _empty_extract()
-
-    kb = (business.knowledge_base if business else "") or ""
+    biz = business or _resolve_business()
+    provider = (getattr(biz, "llm_provider", "") or "anthropic").lower()
+    kb = (biz.knowledge_base if biz else "") or ""
     system = EXTRACTION_PROMPT
     if kb:
         system += "\n\nBusiness knowledge base:\n" + kb[:4000]
+
+    if provider == "openai":
+        oai = _openai_client(biz)
+        if not oai:
+            logger.info("OPENAI_API_KEY missing — returning stub lead extract")
+            return _empty_extract()
+        try:
+            resp = oai.chat.completions.create(
+                model=OPENAI_TEXT_MODEL,
+                max_tokens=1024,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": transcript[:16000]},
+                ],
+            )
+            content = resp.choices[0].message.content or ""
+            return json.loads(_strip_fences(content))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("OpenAI lead extract failed: %s", exc)
+            return _empty_extract()
+
+    client = _claude_client(biz)
+    if not client:
+        logger.info("ANTHROPIC_API_KEY missing — returning stub lead extract")
+        return _empty_extract()
 
     msg = client.messages.create(
         model=CLAUDE_MODEL,
@@ -192,6 +217,38 @@ def draft_quote_from_photo(photo_url: str, lead=None) -> dict[str, Any]:
 
 
 def _vision_quote(photo_url: str, business=None) -> dict[str, Any] | None:
+    biz = business or _resolve_business()
+    provider = (getattr(biz, "llm_provider", "") or "anthropic").lower()
+    if provider == "anthropic":
+        return _vision_quote_claude(photo_url, biz)
+    return _vision_quote_openai(photo_url, biz)
+
+
+def _vision_quote_claude(photo_url: str, business=None) -> dict[str, Any] | None:
+    client = _claude_client(business)
+    if not client:
+        return None
+    try:
+        msg = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=1500,
+            system=PHOTO_QUOTE_PROMPT,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "url", "url": photo_url}},
+                    {"type": "text", "text": "Draft the quote for this photo. Return JSON only."},
+                ],
+            }],
+        )
+        text = "".join(b.text for b in msg.content if hasattr(b, "text"))
+        return json.loads(_strip_fences(text))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Claude vision quote failed: %s", exc)
+        return None
+
+
+def _vision_quote_openai(photo_url: str, business=None) -> dict[str, Any] | None:
     client = _openai_client(business)
     if not client:
         return None
@@ -211,7 +268,7 @@ def _vision_quote(photo_url: str, business=None) -> dict[str, Any] | None:
         content = resp.choices[0].message.content or ""
         return json.loads(_strip_fences(content))
     except Exception as exc:  # noqa: BLE001
-        logger.warning("vision quote failed: %s", exc)
+        logger.warning("OpenAI vision quote failed: %s", exc)
         return None
 
 

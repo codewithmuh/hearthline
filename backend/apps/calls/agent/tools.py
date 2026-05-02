@@ -62,6 +62,46 @@ TOOLS = [
         },
     },
     {
+        "name": "draft_quote",
+        "description": (
+            "Draft a quote for the caller as soon as you have enough info to estimate. "
+            "Call this after qualify_lead, when you've explained the price out loud. "
+            "Creates a Quote record (status=draft) on the lead so the human team and the "
+            "customer can see line items, subtotal, tax, and total in the dashboard. "
+            "Use realistic line items based on the business knowledge base — system size × "
+            "per-unit price, inverter, racking, install labor, net-metering filing, etc."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                    "type": "string",
+                    "description": "One-paragraph plain-English description of the quoted scope.",
+                },
+                "line_items": {
+                    "type": "array",
+                    "description": "3–6 line items. Use prices from the knowledge base.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "description": {"type": "string"},
+                            "quantity": {"type": "number"},
+                            "unit_price": {"type": "number", "description": "In the business currency"},
+                        },
+                        "required": ["description", "quantity", "unit_price"],
+                    },
+                },
+                "tax_rate": {
+                    "type": "number",
+                    "description": "Decimal tax rate, e.g. 0.08 for 8%. Defaults to 0 if omitted.",
+                },
+                "notes": {"type": "string", "description": "Customer-facing note explaining assumptions."},
+                "currency": {"type": "string", "description": "ISO code, e.g. PKR, USD, EUR. Defaults to USD."},
+            },
+            "required": ["summary", "line_items"],
+        },
+    },
+    {
         "name": "send_sms",
         "description": "Send an SMS confirmation to the caller. Run this in the background after a successful booking.",
         "input_schema": {

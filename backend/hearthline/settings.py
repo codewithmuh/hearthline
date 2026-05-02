@@ -7,7 +7,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-not-for-production")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get(
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,backend"
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost,127.0.0.1,backend,.ngrok-free.app,.ngrok.app,.ngrok.io,.trycloudflare.com",
 ).split(",")
 
 INSTALLED_APPS = [
@@ -153,7 +154,28 @@ if not DEBUG:
 CSRF_TRUSTED_ORIGINS = [
     o.replace("http://", "https://") if o.startswith("http://") else o
     for o in CORS_ALLOWED_ORIGINS
+] + [
+    "https://*.ngrok-free.app",
+    "https://*.ngrok.app",
+    "https://*.ngrok.io",
 ]
+
+# Logging — surface app-level INFO logs (call transcripts, tool calls) to stdout
+# so `docker compose logs -f backend` shows the running call.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "loggers": {
+        "apps": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}
 
 # AI
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
