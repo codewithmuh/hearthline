@@ -1,5 +1,7 @@
 """Anthropic tool schema for Anna's home-service receptionist."""
 
+from apps.core.trades import TRADE_KEYS
+
 TOOLS = [
     {
         "name": "qualify_lead",
@@ -17,7 +19,7 @@ TOOLS = [
                 "address": {"type": "string"},
                 "trade": {
                     "type": "string",
-                    "enum": ["hvac", "plumbing", "windows", "doors", "roofing", "solar", "renovation", "electrical", "garage", "pest", "cleaning", "other"],
+                    "enum": TRADE_KEYS,
                 },
                 "project_summary": {"type": "string", "description": "Plain-English description of what the customer needs"},
                 "urgency": {"type": "string", "enum": ["emergency", "this_week", "this_month", "planning"]},

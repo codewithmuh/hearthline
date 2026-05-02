@@ -4,6 +4,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import re
 import time
 import uuid
 
@@ -174,26 +175,37 @@ def chat_completions(request):
     })
 
 
+_SENTENCE_RE = re.compile(r"\S.*?(?:[.!?]+(?:\s+|$)|\n+|$)", re.DOTALL)
+
+
+def _split_for_stream(text: str) -> list[str]:
+    pieces = [p for p in (m.group(0) for m in _SENTENCE_RE.finditer(text)) if p]
+    return pieces or [text]
+
+
 def _stream(text: str, end_call: bool):
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
+    created = int(time.time())
 
     def stream():
-        chunk = {
-            "id": completion_id,
-            "object": "chat.completion.chunk",
-            "created": int(time.time()),
-            "model": "hearthline-claude",
-            "choices": [{
-                "index": 0,
-                "delta": {"role": "assistant", "content": text},
-                "finish_reason": None,
-            }],
-        }
-        yield f"data: {json.dumps(chunk)}\n\n"
+        first = True
+        for piece in _split_for_stream(text):
+            delta: dict = {"content": piece}
+            if first:
+                delta["role"] = "assistant"
+                first = False
+            chunk = {
+                "id": completion_id,
+                "object": "chat.completion.chunk",
+                "created": created,
+                "model": "hearthline-claude",
+                "choices": [{"index": 0, "delta": delta, "finish_reason": None}],
+            }
+            yield f"data: {json.dumps(chunk)}\n\n"
         stop = {
             "id": completion_id,
             "object": "chat.completion.chunk",
-            "created": int(time.time()),
+            "created": created,
             "model": "hearthline-claude",
             "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
         }

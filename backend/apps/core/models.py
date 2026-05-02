@@ -1,18 +1,13 @@
 from django.db import models
 
 from .crypto import EncryptedCharField
+from .trades import TRADES
 
 
 class Business(models.Model):
     """A home-services business using Hearthline."""
 
-    TRADE_CHOICES = [
-        ("hvac", "HVAC & Plumbing"),
-        ("windows", "Windows & Doors"),
-        ("solar", "Solar & Roofing"),
-        ("renovation", "Energy Renovation"),
-        ("general", "General Contractor"),
-    ]
+    TRADE_CHOICES = TRADES
 
     LLM_PROVIDER_CHOICES = [
         ("anthropic", "Anthropic Claude"),

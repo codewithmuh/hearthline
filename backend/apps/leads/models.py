@@ -52,6 +52,7 @@ class Lead(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["business", "-created_at"])]
 
     def __str__(self) -> str:
         return f"Lead #{self.pk} · {self.customer} · {self.status}"
