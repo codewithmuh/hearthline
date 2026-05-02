@@ -103,7 +103,11 @@ TOOLS = [
     },
     {
         "name": "send_sms",
-        "description": "Send an SMS confirmation to the caller. Run this in the background after a successful booking.",
+        "description": (
+            "Send an SMS to the caller. ONLY call this when the caller has explicitly "
+            "asked for an SMS confirmation. Do NOT auto-send. If caller said 'no SMS' "
+            "or wants email only, skip this tool entirely."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -111,6 +115,23 @@ TOOLS = [
                 "message": {"type": "string", "description": "SMS body, max 320 chars"},
             },
             "required": ["to", "message"],
+        },
+    },
+    {
+        "name": "send_email",
+        "description": (
+            "Send an email to the caller. ONLY call this when the caller has explicitly "
+            "asked for an email confirmation AND has given you their email address. Do NOT "
+            "auto-send. If caller said 'no email' or wants SMS only, skip this tool entirely."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "to": {"type": "string", "description": "Recipient email address"},
+                "subject": {"type": "string", "description": "Email subject line"},
+                "body": {"type": "string", "description": "Plain-text email body"},
+            },
+            "required": ["to", "subject", "body"],
         },
     },
     {

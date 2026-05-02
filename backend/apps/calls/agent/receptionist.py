@@ -7,6 +7,7 @@ from typing import Any
 
 from django.conf import settings
 
+from apps.calls.services.email import send_email
 from apps.calls.services.persistence import book_appointment_tool, draft_quote_tool, qualify_lead_tool
 from apps.calls.services.scheduling import check_availability
 from apps.calls.services.sms import send_sms
@@ -70,11 +71,16 @@ def execute_tool(name: str, tool_input: dict, *, caller_phone: str | None = None
         return qualify_lead_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
     if name == "book_appointment":
         return book_appointment_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+    if name == "draft_quote":
+        return draft_quote_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
     if name == "check_availability":
         return check_availability(tool_input["date"], tool_input.get("trade"))
     if name == "send_sms":
         to = (tool_input.get("to") or "").strip() or (caller_phone or "")
         return send_sms(to, tool_input["message"], business=business)
+    if name == "send_email":
+        to = (tool_input.get("to") or "").strip()
+        return send_email(to, tool_input.get("subject", ""), tool_input.get("body", ""), business=business)
     return {"error": f"Unknown tool: {name}"}
 
 
@@ -164,6 +170,10 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
             conversation_history=conversation_history,
             execute_tool=dispatch,
         )
+        # Same defer-hangup safety net as the Claude branch.
+        if result.get("end_call") and len(result.get("text") or "") > 12:
+            logger.info("[END_CALL DEFERRED] hangup deferred so Vapi can play closing message")
+            result["end_call"] = False
         logger.info("[CALL %s · %s] ANNA: %s%s",
                     call_id or "?", caller_phone or "?",
                     (result.get("text") or "")[:300],
@@ -248,6 +258,13 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
             response_text = "You're all set! Anything else I can help with?"
         else:
             response_text = "Is there anything else I can help you with?"
+
+    # Safety net: if Anna fired end_call WITH a non-trivial closing message in
+    # the same turn, defer the hangup so Vapi finishes playing the audio first.
+    # Next turn, the model will fire end_call alone with empty text → real hangup.
+    if should_end and len(response_text) > 12:
+        logger.info("[END_CALL DEFERRED] hangup deferred so Vapi can play closing message")
+        should_end = False
 
     logger.info("[CALL %s · %s] ANNA: %s%s",
                 call_id or "?", caller_phone or "?",

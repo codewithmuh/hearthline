@@ -276,22 +276,45 @@ def draft_quote_tool(payload: dict[str, Any], verified_phone: str | None = None,
     notes = (payload.get("notes") or payload.get("summary") or "")[:1000]
     currency = (payload.get("currency") or "USD").strip()[:8]
 
-    reference = "HL-" + secrets.token_hex(3).upper()
-    quote = Quote.objects.create(
-        lead=lead,
-        reference=reference,
-        subtotal=subtotal,
-        tax=tax,
-        total=total,
-        notes=notes,
-        status="draft",
-        drafted_by_ai=True,
-        photo_assessment={
+    # Dedup: one Quote per phone call. If Anna refines the price across turns,
+    # update the same Quote row (replace line items, recalc totals) instead of
+    # writing a new one. Match by `photo_assessment.drafted_during_call == call_id`.
+    quote = (
+        Quote.objects.filter(lead=lead, photo_assessment__drafted_during_call=call_id)
+        .order_by("-created_at").first()
+    )
+    if quote:
+        quote.subtotal = subtotal
+        quote.tax = tax
+        quote.total = total
+        quote.notes = notes
+        quote.photo_assessment = {
             "scope_summary": (payload.get("summary") or "")[:1000],
             "currency": currency,
             "drafted_during_call": call_id,
-        },
-    )
+        }
+        quote.save()
+        quote.line_items.all().delete()
+        action = "updated"
+        reference = quote.reference
+    else:
+        reference = "HL-" + secrets.token_hex(3).upper()
+        quote = Quote.objects.create(
+            lead=lead,
+            reference=reference,
+            subtotal=subtotal,
+            tax=tax,
+            total=total,
+            notes=notes,
+            status="draft",
+            drafted_by_ai=True,
+            photo_assessment={
+                "scope_summary": (payload.get("summary") or "")[:1000],
+                "currency": currency,
+                "drafted_during_call": call_id,
+            },
+        )
+        action = "created"
     for li in line_items:
         LineItem.objects.create(quote=quote, **li)
 
@@ -300,8 +323,8 @@ def draft_quote_tool(payload: dict[str, Any], verified_phone: str | None = None,
         lead.estimated_value = total
         lead.save(update_fields=["status", "estimated_value", "updated_at"])
 
-    logger.info("[DRAFT_QUOTE] quote=%s lead=%s items=%d total=%s %s",
-                quote.id, lead.id, len(line_items), total, currency)
+    logger.info("[DRAFT_QUOTE] %s quote=%s lead=%s items=%d total=%s %s",
+                action, quote.id, lead.id, len(line_items), total, currency)
     return {
         "success": True,
         "quote_id": quote.id,
@@ -309,5 +332,6 @@ def draft_quote_tool(payload: dict[str, Any], verified_phone: str | None = None,
         "total": str(total),
         "currency": currency,
         "items": len(line_items),
-        "message": f"Quote {reference} drafted with {len(line_items)} line items, total {currency} {total}.",
+        "action": action,
+        "message": f"Quote {reference} {action} with {len(line_items)} line items, total {currency} {total}.",
     }
