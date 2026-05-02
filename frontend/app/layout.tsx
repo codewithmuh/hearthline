@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { I18nProvider } from "./lib/i18n";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <script dangerouslySetInnerHTML={{ __html: LANG_INIT }} />
         <I18nProvider>{children}</I18nProvider>
+        <Analytics />
         <div id="google_translate_element" aria-hidden style={{ display: "none" }} />
         <script dangerouslySetInnerHTML={{ __html: GTRANSLATE_INIT }} />
         <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async />
