@@ -27,6 +27,8 @@ const LANG_INIT = `(function(){try{var RTL={ar:1};var s=localStorage.getItem('hl
 
 const GTRANSLATE_INIT = `function googleTranslateElementInit(){try{new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'en,es,de,fr,it,pt,nl,zh-CN,ja,ar',autoDisplay:false,layout:google.translate.TranslateElement.InlineLayout.SIMPLE},'google_translate_element');}catch(e){}}`;
 
+const SW_INIT = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
@@ -37,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div id="google_translate_element" aria-hidden style={{ display: "none" }} />
         <script dangerouslySetInnerHTML={{ __html: GTRANSLATE_INIT }} />
         <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async />
+        <script dangerouslySetInnerHTML={{ __html: SW_INIT }} />
       </body>
     </html>
   );

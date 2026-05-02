@@ -2880,7 +2880,8 @@ img { max-width: 100%; display: block; }
 /* ---- Footer ---- */
 .footer {
   border-top: 1px solid var(--border);
-  padding: 48px 0;
+  padding-top: 48px;
+  padding-bottom: 48px;
   margin-top: 64px;
   display: grid;
   grid-template-columns: 1fr;
@@ -5505,7 +5506,7 @@ select.text-input { cursor: pointer; appearance: none; background-image: url("da
   .section-sub { font-size: 14.5px; }
 
   /* Footer */
-  .footer { padding: 36px 0 28px; margin-top: 40px; gap: 24px; }
+  .footer { padding-top: 36px; padding-bottom: 28px; margin-top: 40px; gap: 24px; }
   .footer-bottom { flex-direction: column; align-items: flex-start; gap: 6px; font-size: 12px; }
   .creator-credit { padding-top: 22px; gap: 18px; }
   .creator-credit-socials { flex-wrap: wrap; gap: 8px; }
