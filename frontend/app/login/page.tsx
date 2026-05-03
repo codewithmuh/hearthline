@@ -6,7 +6,8 @@ import { getCurrentUser } from "@/app/lib/api";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign in · Hearthline",
+  title: "Sign in",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default async function LoginPage({

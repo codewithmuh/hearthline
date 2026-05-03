@@ -7,7 +7,8 @@ import Sidebar from "./Sidebar";
 import { DashGlobalTopbar } from "./Topbar";
 
 export const metadata: Metadata = {
-  title: "Hearthline · Dashboard",
+  title: "Dashboard",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 async function fetchCount(path: string): Promise<number> {

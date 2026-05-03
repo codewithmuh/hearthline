@@ -1,8 +1,14 @@
 import { MarketingFooter, MarketingTopbar } from "../MarketingShell";
 
 export const metadata = {
-  title: "Hearthline · Terms of Service",
+  title: "Terms of Service",
   description: "The terms governing the use of Hearthline's hosted product and services.",
+  alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "Hearthline · Terms of Service",
+    description: "The terms governing the use of Hearthline's hosted product and services.",
+    url: "/terms",
+  },
 };
 
 export default function TermsPage() {

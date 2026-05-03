@@ -4,8 +4,15 @@ import ThemeToggle from "../ThemeToggle";
 import LanguageSwitcher from "../LanguageSwitcher";
 
 export const metadata = {
-  title: "Hearthline · Docs",
-  description: "Self-host Hearthline. Stack, architecture, quick start, roadmap.",
+  title: "Docs",
+  description:
+    "Self-host Hearthline — Django 5 + DRF backend, Next.js 15 frontend, Vapi + Twilio voice. Stack, architecture, quick start, roadmap.",
+  alternates: { canonical: "/docs" },
+  openGraph: {
+    title: "Hearthline · Docs",
+    description: "Self-host Hearthline. Stack, architecture, quick start, roadmap.",
+    url: "/docs",
+  },
 };
 
 const GITHUB_URL = "https://github.com/codewithmuh/hearthline";
@@ -245,7 +252,7 @@ docker compose up --build
               </div>
             </div>
             <div className="creator-grid">
-              <div className="creator-stat"><strong>17K+</strong><span>YouTube subscribers</span></div>
+              <div className="creator-stat"><strong>25K+</strong><span>YouTube subscribers</span></div>
               <div className="creator-stat"><strong>75</strong><span>Build-along videos</span></div>
               <div className="creator-stat"><strong>1</strong><span>Video / week cadence</span></div>
               <div className="creator-stat"><strong>AGPL-3.0</strong><span>Licensed code</span></div>

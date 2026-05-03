@@ -1,8 +1,14 @@
 import { MarketingFooter, MarketingTopbar } from "../MarketingShell";
 
 export const metadata = {
-  title: "Hearthline · Privacy Policy",
+  title: "Privacy Policy",
   description: "How Hearthline collects, processes, and protects customer and call data.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Hearthline · Privacy Policy",
+    description: "How Hearthline collects, processes, and protects customer and call data.",
+    url: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

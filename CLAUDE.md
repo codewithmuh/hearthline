@@ -25,7 +25,7 @@ Repo target: **github.com/codewithmuh/hearthline** (public, MIT).
 
 ## Who's behind it
 
-- **Muhammad Rashid (@codewithmuh)** — content creator, 17K+ YouTube subs,
+- **Muhammad Rashid (@codewithmuh)** — content creator, 25K+ YouTube subs,
   channel focused on AI build-along videos.
 - Site: https://codewithmuh.com
 - LinkedIn: https://www.linkedin.com/in/muhammad-rashid-daha/

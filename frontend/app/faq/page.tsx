@@ -1,56 +1,98 @@
 import { MarketingFooter, MarketingTopbar } from "../MarketingShell";
 
 export const metadata = {
-  title: "Hearthline · FAQ",
+  title: "FAQ",
   description: "Common questions about Hearthline — pricing, setup, integrations, security, and more.",
+  alternates: { canonical: "/faq" },
+  openGraph: {
+    title: "Hearthline · FAQ",
+    description: "Common questions about Hearthline — pricing, setup, integrations, security, and more.",
+    url: "/faq",
+  },
 };
 
-const FAQS: Array<{ q: string; a: React.ReactNode }> = [
+type FaqItem = { q: string; aText: string; a: React.ReactNode };
+
+const FAQS: FaqItem[] = [
   {
     q: "How long does setup take?",
+    aText:
+      "About 30 minutes. We need your business hours, service area, pricing rules, and a phone number you'd like Anna to answer. Most teams are live by lunchtime.",
     a: <>About 30 minutes. We need your business hours, service area, pricing rules, and a phone number you'd like Anna to answer. Most teams are live by lunchtime.</>,
   },
   {
     q: "Does Anna sound like a robot?",
+    aText:
+      "No — we use the latest neural voices from ElevenLabs, fine-tuned to match your brand. Customers regularly assume Anna is a real person on the team.",
     a: <>No — we use the latest neural voices from ElevenLabs, fine-tuned to match your brand. Customers regularly assume Anna is a real person on the team.</>,
   },
   {
     q: "What languages does Anna support?",
+    aText:
+      "English, French, Spanish, German, Italian, Dutch, and Portuguese out of the box. Custom languages on request.",
     a: <>English, French, Spanish, German, Italian, Dutch, and Portuguese out of the box. Custom languages on request.</>,
   },
   {
     q: "Can I keep my existing phone number?",
+    aText:
+      "Yes. We forward your existing line to Hearthline, or you can publish a new dedicated number. SMS / WhatsApp routing works the same way.",
     a: <>Yes. We forward your existing line to Hearthline, or you can publish a new dedicated number. SMS / WhatsApp routing works the same way.</>,
   },
   {
     q: "Which CRMs do you sync with?",
+    aText:
+      "HubSpot, Pipedrive, Salesforce, Zoho, and ServiceTitan. Anything else can be added through Zapier or our REST API.",
     a: <>HubSpot, Pipedrive, Salesforce, Zoho, and ServiceTitan. Anything else can be added through Zapier or our REST API.</>,
   },
   {
     q: "What happens if Anna can't answer something?",
+    aText:
+      "She politely takes a detailed message, files it as a hot lead in your CRM, and escalates to whoever's on call. No customer is ever left hanging.",
     a: <>She politely takes a detailed message, files it as a hot lead in your CRM, and escalates to whoever's on call. No customer is ever left hanging.</>,
   },
   {
     q: "Is my data secure?",
+    aText:
+      "Yes. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). We're SOC 2 Type II audited and GDPR compliant. We do not train on your customer data.",
     a: <>Yes. All data is encrypted in transit (TLS 1.3) and at rest (AES-256). We're SOC 2 Type II audited and GDPR compliant. We do not train on your customer data.</>,
   },
   {
     q: "How is pricing structured?",
+    aText:
+      "A flat monthly platform fee plus per-minute call usage. No per-seat pricing. Most home-service teams pay between $390 – $890 / month all-in. Book a demo for an exact quote.",
     a: <>A flat monthly platform fee plus per-minute call usage. No per-seat pricing. Most home-service teams pay between $390 – $890 / month all-in. Book a demo for an exact quote.</>,
   },
   {
     q: "Can I try Hearthline before paying?",
+    aText:
+      "We offer a 14-day pilot — same setup, same Anna, no card required. We only invoice if you decide to keep her after two weeks.",
     a: <>We offer a 14-day pilot — same setup, same Anna, no card required. We only invoice if you decide to keep her after two weeks.</>,
   },
   {
     q: "Can I host Hearthline myself?",
+    aText:
+      "Yes — the whole stack is open source under AGPL-3.0. A commercial license is available for white-labeling, reselling, or running closed-source forks. See the docs for the self-host quick start.",
     a: <>Yes — the whole stack is open source under AGPL-3.0. A commercial license is available for white-labeling, reselling, or running closed-source forks. See the <a href="/docs">docs</a> for the self-host quick start.</>,
   },
 ];
 
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.aText },
+  })),
+};
+
 export default function FaqPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
       <MarketingTopbar />
       <main>
         <section className="shell hero hero-tight">

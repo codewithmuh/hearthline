@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import AnnaDemoLauncher from "./AnnaDemoLauncher";
@@ -11,16 +9,66 @@ import HeroBackdrop from "./HeroBackdrop";
 import LiveTicker from "./LiveTicker";
 import MissedCallStory from "./MissedCallStory";
 import MockDashboard from "./MockDashboard";
-import PhoneWidget from "./PhoneWidget";
-import { useI18n } from "./lib/i18n";
+import FeaturesSwitcher from "./FeaturesSwitcher";
+import { tEn as t } from "./lib/strings-en";
 
+const SITE_URL = "https://hearthline.codewithmuh.com";
 const DEMO_URL = "https://calendly.com/contact-codewithmuh/30min";
 const REPO_URL = "https://github.com/codewithmuh/hearthline";
 
-export default function HomePage() {
-  const { t } = useI18n();
-  const [activeFeature, setActiveFeature] = useState(0);
+export const metadata: Metadata = {
+  title: "Hearthline — The 24/7 AI front desk for home-service teams",
+  description:
+    "Anna answers, qualifies, photo-quotes, and books — so your crew sleeps and your calendar fills itself. Open-source AI receptionist for HVAC, plumbing, roofing, solar, and more.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    title: "Hearthline — The 24/7 AI front desk for home-service teams",
+    description:
+      "Anna answers, qualifies, photo-quotes, and books — so your crew sleeps and your calendar fills itself.",
+    url: SITE_URL,
+  },
+};
 
+const SOFTWARE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Hearthline",
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "AI Receptionist",
+  operatingSystem: "Web, Linux, Docker",
+  description:
+    "Open-source 24/7 AI front desk for home-service teams — phone, SMS, WhatsApp, email, chat. Anna qualifies leads, drafts photo-based quotes, and books appointments automatically.",
+  url: SITE_URL,
+  license: "https://www.gnu.org/licenses/agpl-3.0.html",
+  isAccessibleForFree: true,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Self-host under AGPL-3.0. Done-for-you setup available.",
+  },
+  author: {
+    "@type": "Person",
+    name: "Muhammad Rashid",
+    url: "https://codewithmuh.com",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Hearthline",
+  },
+  aggregateRating: undefined,
+  featureList: [
+    "AI phone receptionist (Vapi + Twilio)",
+    "AI chat assistant (web, SMS, WhatsApp)",
+    "Photo-to-quote vision pipeline",
+    "CRM integration (HubSpot, Pipedrive, Salesforce, ServiceTitan)",
+    "Configurable per-trade pricing rules",
+    "Live analytics dashboards",
+  ],
+};
+
+export default function HomePage() {
   const FEATURES = [
     { name: t("features.f1.name"), body: t("features.f1.body") },
     { name: t("features.f2.name"), body: t("features.f2.body") },
@@ -44,6 +92,10 @@ export default function HomePage() {
 
   return (
     <div translate="no" className="notranslate">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SOFTWARE_JSONLD) }}
+      />
       <div className="topbar-wrap">
         <header className="topbar">
           <div className="brand-cluster">
@@ -54,14 +106,14 @@ export default function HomePage() {
             <a
               href="https://codewithmuh.com"
               target="_blank"
-              rel="noreferrer"
+              rel="noreferrer author"
               className="built-by-pill"
               title="Built by codewithmuh"
             >
               {t("topbar.builtBy")} <strong>codewithmuh</strong>
             </a>
           </div>
-          <nav className="nav-links">
+          <nav className="nav-links" aria-label="Primary">
             <Link href="#flow" className="nav-link">{t("nav.how")}</Link>
             <Link href="#features" className="nav-link">{t("nav.features")}</Link>
             <Link href="#industries" className="nav-link">{t("nav.industries")}</Link>
@@ -133,36 +185,7 @@ export default function HomePage() {
             <h2 className="section-title">{t("features.title")}</h2>
             <p className="section-sub">{t("features.sub")}</p>
           </div>
-          <div className="feature-split feature-split-stretch">
-            <div className="feature-split-left">
-              <div className="feature-active">
-                <div className="feature-active-row">
-                  <h3 className="feature-active-name">{FEATURES[activeFeature].name}</h3>
-                  <span className="feature-num feature-num-active">0{activeFeature + 1}</span>
-                </div>
-                <p className="feature-active-body">{FEATURES[activeFeature].body}</p>
-                <Link href="/dashboard" className="feature-cta">
-                  {t("btn.explore")} <span aria-hidden>→</span>
-                </Link>
-              </div>
-              <div className="features-list features-list-tight">
-                {FEATURES.map((f, i) => i === activeFeature ? null : (
-                  <button
-                    type="button"
-                    className="feature-row muted feature-row-btn"
-                    key={f.name}
-                    onClick={() => setActiveFeature(i)}
-                  >
-                    <h3 className="feature-name">{f.name}</h3>
-                    <span className="feature-num">0{i + 1}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="feature-split-right">
-              <PhoneWidget />
-            </div>
-          </div>
+          <FeaturesSwitcher features={FEATURES} exploreLabel={t("btn.explore")} />
         </section>
 
         <div className="ember-line" aria-hidden />
@@ -282,13 +305,13 @@ export default function HomePage() {
           <div className="creator-credit">
             <div className="creator-credit-text">
               <p className="creator-credit-eyebrow">{t("footer.builtBy")}</p>
-              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer" className="creator-credit-name">
+              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer author" className="creator-credit-name">
                 Muhammad Rashid Daha · <span>codewithmuh.com</span>
               </a>
               <p className="creator-credit-bio">{t("footer.bio")}</p>
             </div>
             <div className="creator-credit-socials">
-              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer" className="social-btn" aria-label="codewithmuh.com">
+              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer author" className="social-btn" aria-label="codewithmuh.com">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
                 <span>codewithmuh.com</span>
               </a>
@@ -315,7 +338,7 @@ export default function HomePage() {
             <span>© {new Date().getFullYear()} Hearthline · {t("footer.copyright")}</span>
             <span>
               {t("footer.builtBy")}{" "}
-              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer">@codewithmuh</a>
+              <a href="https://codewithmuh.com" target="_blank" rel="noreferrer author">@codewithmuh</a>
               {" "}{t("footer.bottomTail")}
             </span>
           </div>
