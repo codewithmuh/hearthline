@@ -71,13 +71,19 @@ def _verify_chat_completions_secret(request) -> bool:
     expected = (settings.VAPI_WEBHOOK_SECRET or "").strip()
     if not expected:
         return True
-    # Vapi sends it as a Bearer token on the custom-LLM endpoint.
+    # Vapi sends it as a Bearer token on the custom-LLM endpoint, but Vapi's
+    # Custom LLM UI doesn't always expose a header field — fall back to query
+    # string `?key=...` so the secret can travel in the URL itself.
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         received = auth[7:].strip()
     else:
-        received = request.headers.get("X-Vapi-Secret", "")
-    return hmac.compare_digest(expected, received)
+        received = (
+            request.headers.get("X-Vapi-Secret", "")
+            or request.GET.get("key", "")
+            or request.GET.get("secret", "")
+        )
+    return hmac.compare_digest(expected, received.strip())
 
 
 class CallList(generics.ListAPIView):
