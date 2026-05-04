@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { fmtAge, type TicketDetail } from "../../lib";
+import { fmtAge, type TicketDetail } from "../../format";
 
 const STATUSES: { key: TicketDetail["status"]; label: string }[] = [
   { key: "open", label: "Open" },
