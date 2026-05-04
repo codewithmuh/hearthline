@@ -270,21 +270,27 @@ class VapiWebhook(APIView):
             "hang": "completed",
         }
 
-        call, _ = Call.objects.update_or_create(
-            provider="vapi",
-            provider_call_id=provider_call_id,
-            defaults={
-                "business": business,
-                "from_number": from_number,
-                "to_number": to_number,
-                "status": status_map.get(msg_type, "in_progress"),
-                "duration_seconds": int(duration) if duration else None,
-                "recording_url": recording or "",
-                "transcript": transcript,
-                "summary": summary,
-                "raw_payload": payload,
-            },
-        )
+        defaults = {
+            "business": business,
+            "from_number": from_number,
+            "to_number": to_number,
+            "status": status_map.get(msg_type, "in_progress"),
+            "duration_seconds": int(duration) if duration else None,
+            "recording_url": recording or "",
+            "transcript": transcript,
+            "summary": summary,
+            "raw_payload": payload,
+        }
+        existing = list(Call.objects.filter(provider="vapi", provider_call_id=provider_call_id).order_by("id"))
+        if not existing:
+            call = Call.objects.create(provider="vapi", provider_call_id=provider_call_id, **defaults)
+        else:
+            call = existing[0]
+            for k, v in defaults.items():
+                setattr(call, k, v)
+            call.save()
+            if len(existing) > 1:
+                Call.objects.filter(pk__in=[c.pk for c in existing[1:]]).delete()
         logger.info("[VAPI] %s id=%s call=%s", msg_type, provider_call_id, call.id)
         return Response({"ok": True, "call_id": call.id})
 
