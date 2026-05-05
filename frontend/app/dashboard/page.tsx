@@ -81,7 +81,7 @@ export default async function OverviewPage() {
                 </div>
                 <div className="app-row-value">{fmtMoney(lead.estimated_value, currency)}</div>
                 <div className="app-row-action">
-                  <LeadActionPill lead={lead} />
+                  <LeadActionPill lead={lead} currency={currency} />
                 </div>
               </Link>
             ))

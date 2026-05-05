@@ -1,11 +1,15 @@
 import Link from "next/link";
 
 import { fetchJson, fmtAge, fmtMoney, type Page, type Quote } from "../lib";
+import { getActiveCurrency } from "../../lib/currency";
 import { StatusPill } from "../parts";
 
 export default async function QuotesPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const params = await searchParams;
-  const data = await fetchJson<Page<Quote>>("/quotes/");
+  const [data, currency] = await Promise.all([
+    fetchJson<Page<Quote>>("/quotes/"),
+    getActiveCurrency(),
+  ]);
   let quotes = data?.results ?? [];
 
   if (params.status) quotes = quotes.filter((q) => q.status === params.status);
@@ -38,12 +42,12 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         <div className="detail-grid">
           <div className="detail-card">
             <div className="detail-card-label">Total quoted</div>
-            <div className="detail-card-value">{fmtMoney(total)}</div>
+            <div className="detail-card-value">{fmtMoney(total, currency)}</div>
             <div className="muted" style={{ fontSize: 12, color: "var(--muted)" }}>{quotes.length} quote{quotes.length === 1 ? "" : "s"}</div>
           </div>
           <div className="detail-card">
             <div className="detail-card-label">Accepted</div>
-            <div className="detail-card-value">{fmtMoney(acceptedTotal)}</div>
+            <div className="detail-card-value">{fmtMoney(acceptedTotal, currency)}</div>
             <div className="muted" style={{ fontSize: 12, color: "var(--muted)" }}>{accepted.length} closed deal{accepted.length === 1 ? "" : "s"}</div>
           </div>
           <div className="detail-card">
@@ -105,7 +109,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
                       {q.drafted_by_ai && <span className="tag brand" style={{ marginLeft: 6 }}>AI</span>}
                     </td>
                     <td style={{ color: "var(--muted)", fontSize: 12.5 }}>{fmtAge(q.created_at)}</td>
-                    <td className="num"><strong>{fmtMoney(q.total)}</strong></td>
+                    <td className="num"><strong>{fmtMoney(q.total, currency)}</strong></td>
                     <td><Link href={`/dashboard/quotes/${q.id}`} style={{ color: "var(--brand)" }}>View →</Link></td>
                   </tr>
                 ))

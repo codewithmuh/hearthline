@@ -1,5 +1,6 @@
 import { fetchJson, fmtAge, fmtMoney, type Lead, type Page } from "../lib";
 import { getAdminUrl } from "../../lib/api";
+import { getActiveCurrency } from "../../lib/currency";
 
 type CustomerRow = {
   id: number;
@@ -14,7 +15,10 @@ type CustomerRow = {
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const params = await searchParams;
-  const data = await fetchJson<Page<Lead>>("/leads/");
+  const [data, currency] = await Promise.all([
+    fetchJson<Page<Lead>>("/leads/"),
+    getActiveCurrency(),
+  ]);
   const leads = data?.results ?? [];
 
   const map = new Map<number, CustomerRow>();
@@ -110,7 +114,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     </td>
                     <td style={{ color: "var(--muted)", fontSize: 13 }}>{c.address || "—"}</td>
                     <td className="num">{c.leadCount}</td>
-                    <td className="num"><strong>{fmtMoney(c.totalValue)}</strong></td>
+                    <td className="num"><strong>{fmtMoney(c.totalValue, currency)}</strong></td>
                     <td style={{ color: "var(--muted)", fontSize: 12.5 }}>{fmtAge(c.lastSeen)}</td>
                   </tr>
                 ))

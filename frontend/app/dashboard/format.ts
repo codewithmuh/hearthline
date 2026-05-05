@@ -10,18 +10,34 @@ export function fmtAge(iso: string | null | undefined): string {
   return `${d}d ago`;
 }
 
-// Locale that produces the most natural grouping for the given currency.
-// PKR/INR use the South Asian lakh/crore grouping (1,50,000) which is what
-// people actually read prices as in those markets.
+// Locale that produces the most natural grouping + symbol for the given
+// currency. PKR/INR/etc use South Asian lakh/crore grouping (1,50,000); RTL
+// currencies render in Arabic when the user expects it.
 const CURRENCY_LOCALE: Record<string, string> = {
-  PKR: "en-PK",
-  INR: "en-IN",
-  AED: "en-AE",
-  SAR: "ar-SA",
-  GBP: "en-GB",
-  EUR: "en-IE",
-  CAD: "en-CA",
-  AUD: "en-AU",
+  // Western
+  USD: "en-US", CAD: "en-CA", AUD: "en-AU", NZD: "en-NZ",
+  GBP: "en-GB", EUR: "en-IE", CHF: "de-CH",
+  SEK: "sv-SE", NOK: "nb-NO", DKK: "da-DK",
+  PLN: "pl-PL", CZK: "cs-CZ", HUF: "hu-HU", RON: "ro-RO",
+  TRY: "tr-TR", RUB: "ru-RU", UAH: "uk-UA", ILS: "he-IL",
+  // Middle East / North Africa
+  AED: "en-AE", SAR: "ar-SA", QAR: "ar-QA", KWD: "ar-KW",
+  BHD: "ar-BH", OMR: "ar-OM", JOD: "ar-JO",
+  EGP: "ar-EG", LBP: "ar-LB", MAD: "ar-MA", DZD: "ar-DZ", TND: "ar-TN",
+  // Africa (Sub-Saharan)
+  ZAR: "en-ZA", NGN: "en-NG", KES: "en-KE", GHS: "en-GH",
+  ETB: "am-ET", UGX: "en-UG", TZS: "en-TZ",
+  // South Asia (lakh/crore grouping)
+  PKR: "en-PK", INR: "en-IN", BDT: "bn-BD",
+  LKR: "si-LK", NPR: "ne-NP", AFN: "fa-AF",
+  // East / Southeast Asia
+  CNY: "zh-CN", HKD: "en-HK", TWD: "zh-TW",
+  JPY: "ja-JP", KRW: "ko-KR",
+  SGD: "en-SG", MYR: "ms-MY", IDR: "id-ID",
+  PHP: "en-PH", THB: "th-TH", VND: "vi-VN",
+  // Latin America
+  MXN: "es-MX", BRL: "pt-BR", ARS: "es-AR", CLP: "es-CL",
+  COP: "es-CO", PEN: "es-PE", UYU: "es-UY",
 };
 
 export function fmtMoney(

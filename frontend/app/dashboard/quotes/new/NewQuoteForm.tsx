@@ -4,14 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import type { Business, Lead } from "../../lib";
+import { fmtMoney as fmtMoneyShared, type Business, type Lead } from "../../lib";
 
 type Item = { description: string; quantity: string; unit_price: string };
-
-function fmtMoney(n: number): string {
-  if (Number.isNaN(n)) return "$0";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -33,6 +28,8 @@ export default function NewQuoteForm({
   business: Business | null;
 }) {
   const router = useRouter();
+  const currency = business?.currency ?? "USD";
+  const fmtMoney = (n: number) => fmtMoneyShared(Number.isNaN(n) ? 0 : n, currency);
   const [leadId, setLeadId] = useState<string>(leads[0]?.id?.toString() ?? "");
   const [status, setStatus] = useState("draft");
   const [notes, setNotes] = useState(
@@ -291,7 +288,7 @@ export default function NewQuoteForm({
                 <span>Total due</span>
                 <span>{fmtMoney(totals.total)}</span>
               </div>
-              <div className="invoice-totals-currency">USD · 14-day validity</div>
+              <div className="invoice-totals-currency">{currency} · 14-day validity</div>
             </div>
           </section>
 

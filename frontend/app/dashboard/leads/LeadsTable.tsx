@@ -7,7 +7,7 @@ import { useMemo, useState, useTransition } from "react";
 import { fmtAge, fmtMoney, type Lead } from "../format";
 import { LeadActionPill } from "../parts";
 
-export default function LeadsTable({ leads }: { leads: Lead[] }) {
+export default function LeadsTable({ leads, currency = "USD" }: { leads: Lead[]; currency?: string }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [busy, startTransition] = useTransition();
@@ -147,9 +147,9 @@ export default function LeadsTable({ leads }: { leads: Lead[] }) {
                   <div className="app-row-title app-row-title-soft">{lead.project_summary || "(no summary)"}</div>
                   <div className="app-row-sub">{fmtAge(lead.created_at)} · {lead.temperature}</div>
                 </Link>
-                <Link href={`/dashboard/leads/${lead.id}`} className="app-row-value leads-row-link">{fmtMoney(lead.estimated_value)}</Link>
+                <Link href={`/dashboard/leads/${lead.id}`} className="app-row-value leads-row-link">{fmtMoney(lead.estimated_value, currency)}</Link>
                 <Link href={`/dashboard/leads/${lead.id}`} className="app-row-action leads-row-link">
-                  <LeadActionPill lead={lead} />
+                  <LeadActionPill lead={lead} currency={currency} />
                 </Link>
                 <button
                   type="button"

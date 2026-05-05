@@ -6,43 +6,97 @@ from zoneinfo import ZoneInfo
 # How big numbers should be SPOKEN out loud, by currency. Speech-to-text in
 # Vapi will otherwise read each digit (one zero zero zero zero zero zero) which
 # makes Anna sound robotic. We hand the model an explicit cheat sheet.
-CURRENCY_SPEAKING_GUIDES = {
-    "USD": (
-        "Currency is US Dollars. Say 'dollars' or '$'. Use natural English: "
-        "'twelve hundred dollars', 'fifteen thousand dollars', 'two and a half million dollars'."
-    ),
-    "EUR": (
-        "Currency is Euros. Say 'euros' or '€'. 'twelve hundred euros', "
-        "'fifteen thousand euros', 'two million euros'."
-    ),
-    "GBP": (
-        "Currency is British Pounds. Say 'pounds'. 'twelve hundred pounds', "
-        "'fifteen thousand pounds', 'two million pounds'."
-    ),
-    "PKR": (
-        "Currency is Pakistani Rupees. Say 'rupees' or 'PKR'. Use Pakistani "
-        "speech conventions: 'fifteen lakh rupees' (1,500,000), 'sixteen lakh "
-        "fifty thousand' (1,650,000), 'one crore rupees' (10,000,000), 'two "
-        "and a half crore' (25,000,000). NEVER read digits like 'one zero zero "
-        "zero zero zero zero'. NEVER say 'one million five hundred thousand' "
-        "in Pakistan — say 'fifteen lakh' instead."
-    ),
-    "INR": (
-        "Currency is Indian Rupees. Say 'rupees' or '₹'. Use Indian conventions: "
-        "'fifteen lakh rupees' (1,500,000), 'one crore rupees' (10,000,000), "
-        "'two and a half crore' (25,000,000). NEVER read digit by digit."
-    ),
-    "AED": (
-        "Currency is UAE Dirhams. Say 'dirhams' or 'AED'. 'twelve hundred dirhams', "
-        "'fifteen thousand dirhams', 'two million dirhams'."
-    ),
-    "CAD": ("Currency is Canadian Dollars. Say 'dollars' — qualify as Canadian "
-            "only if the caller asks. 'fifteen thousand dollars'."),
-    "AUD": ("Currency is Australian Dollars. Say 'dollars' — qualify as Australian "
-            "only if the caller asks. 'fifteen thousand dollars'."),
-    "SAR": ("Currency is Saudi Riyals. Say 'riyals'. 'fifteen thousand riyals', "
-            "'two million riyals'."),
+# Two patterns dominate large-number speech:
+#   - "western": thousand → million → billion. Used by USD, EUR, GBP, etc.
+#   - "south asian": lakh (10^5) → crore (10^7). Used by PKR, INR, BDT,
+#     LKR, NPR, AFN. "1,500,000" should be spoken as "fifteen lakh", not
+#     "one and a half million".
+WESTERN_GUIDE_TEMPLATE = (
+    "Currency is {name}. Say '{spoken}'. Use natural English number-speaking: "
+    "'twelve hundred {spoken}', 'fifteen thousand {spoken}', 'two and a half "
+    "million {spoken}'. Round generously when speaking ('around fifteen "
+    "thousand'). NEVER read digits one by one."
+)
+SOUTH_ASIAN_GUIDE_TEMPLATE = (
+    "Currency is {name}. Say '{spoken}'. Use the South Asian lakh/crore "
+    "system: 'fifteen lakh {spoken}' (1,500,000), 'sixteen lakh fifty thousand' "
+    "(1,650,000), 'one crore {spoken}' (10,000,000), 'two and a half crore' "
+    "(25,000,000). NEVER say 'one million five hundred thousand' — say "
+    "'fifteen lakh'. NEVER read digit by digit."
+)
+
+# (display name, spoken word) per currency. Pattern picks the template above.
+_WESTERN: dict[str, tuple[str, str]] = {
+    "USD": ("US Dollars", "dollars"),
+    "EUR": ("Euros", "euros"),
+    "GBP": ("British Pounds", "pounds"),
+    "CAD": ("Canadian Dollars", "dollars"),
+    "AUD": ("Australian Dollars", "dollars"),
+    "NZD": ("New Zealand Dollars", "dollars"),
+    "CHF": ("Swiss Francs", "francs"),
+    "SEK": ("Swedish Kronor", "kronor"),
+    "NOK": ("Norwegian Kroner", "kroner"),
+    "DKK": ("Danish Kroner", "kroner"),
+    "PLN": ("Polish Zloty", "zloty"),
+    "CZK": ("Czech Koruna", "koruna"),
+    "HUF": ("Hungarian Forint", "forint"),
+    "RON": ("Romanian Lei", "lei"),
+    "TRY": ("Turkish Lira", "lira"),
+    "RUB": ("Russian Rubles", "rubles"),
+    "UAH": ("Ukrainian Hryvnia", "hryvnia"),
+    "ILS": ("Israeli Shekels", "shekels"),
+    "AED": ("UAE Dirhams", "dirhams"),
+    "SAR": ("Saudi Riyals", "riyals"),
+    "QAR": ("Qatari Riyals", "riyals"),
+    "KWD": ("Kuwaiti Dinars", "dinars"),
+    "BHD": ("Bahraini Dinars", "dinars"),
+    "OMR": ("Omani Rials", "rials"),
+    "JOD": ("Jordanian Dinars", "dinars"),
+    "EGP": ("Egyptian Pounds", "pounds"),
+    "LBP": ("Lebanese Pounds", "pounds"),
+    "MAD": ("Moroccan Dirhams", "dirhams"),
+    "DZD": ("Algerian Dinars", "dinars"),
+    "TND": ("Tunisian Dinars", "dinars"),
+    "ZAR": ("South African Rand", "rand"),
+    "NGN": ("Nigerian Naira", "naira"),
+    "KES": ("Kenyan Shillings", "shillings"),
+    "GHS": ("Ghanaian Cedi", "cedi"),
+    "ETB": ("Ethiopian Birr", "birr"),
+    "UGX": ("Ugandan Shillings", "shillings"),
+    "TZS": ("Tanzanian Shillings", "shillings"),
+    "CNY": ("Chinese Yuan", "yuan"),
+    "HKD": ("Hong Kong Dollars", "dollars"),
+    "TWD": ("Taiwan Dollars", "dollars"),
+    "JPY": ("Japanese Yen", "yen"),
+    "KRW": ("Korean Won", "won"),
+    "SGD": ("Singapore Dollars", "dollars"),
+    "MYR": ("Malaysian Ringgit", "ringgit"),
+    "IDR": ("Indonesian Rupiah", "rupiah"),
+    "PHP": ("Philippine Pesos", "pesos"),
+    "THB": ("Thai Baht", "baht"),
+    "VND": ("Vietnamese Dong", "dong"),
+    "MXN": ("Mexican Pesos", "pesos"),
+    "BRL": ("Brazilian Reais", "reais"),
+    "ARS": ("Argentine Pesos", "pesos"),
+    "CLP": ("Chilean Pesos", "pesos"),
+    "COP": ("Colombian Pesos", "pesos"),
+    "PEN": ("Peruvian Sol", "sol"),
+    "UYU": ("Uruguayan Pesos", "pesos"),
 }
+_SOUTH_ASIAN: dict[str, tuple[str, str]] = {
+    "PKR": ("Pakistani Rupees", "rupees"),
+    "INR": ("Indian Rupees", "rupees"),
+    "BDT": ("Bangladeshi Taka", "taka"),
+    "LKR": ("Sri Lankan Rupees", "rupees"),
+    "NPR": ("Nepalese Rupees", "rupees"),
+    "AFN": ("Afghan Afghani", "afghani"),
+}
+
+CURRENCY_SPEAKING_GUIDES: dict[str, str] = {}
+for _code, (_name, _spoken) in _WESTERN.items():
+    CURRENCY_SPEAKING_GUIDES[_code] = WESTERN_GUIDE_TEMPLATE.format(name=_name, spoken=_spoken)
+for _code, (_name, _spoken) in _SOUTH_ASIAN.items():
+    CURRENCY_SPEAKING_GUIDES[_code] = SOUTH_ASIAN_GUIDE_TEMPLATE.format(name=_name, spoken=_spoken)
 
 
 def get_receptionist_prompt(business_name: str = "Rolling Shutters Inc.",

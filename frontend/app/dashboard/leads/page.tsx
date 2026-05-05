@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { fetchJson, type Lead, type Page } from "../lib";
 import { getAdminUrl } from "../../lib/api";
+import { getActiveCurrency } from "../../lib/currency";
 import LeadsTable from "./LeadsTable";
 
 const STATUSES = ["all", "new", "qualifying", "quoted", "booked", "won", "lost"];
@@ -12,7 +13,10 @@ export default async function LeadsPage({
   searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   const params = await searchParams;
-  const data = await fetchJson<Page<Lead>>("/leads/");
+  const [data, currency] = await Promise.all([
+    fetchJson<Page<Lead>>("/leads/"),
+    getActiveCurrency(),
+  ]);
   let leads = data?.results ?? [];
 
   if (params.status) leads = leads.filter((l) => l.status === params.status);
@@ -61,7 +65,7 @@ export default async function LeadsPage({
           </div>
         </form>
 
-        <LeadsTable leads={leads} />
+        <LeadsTable leads={leads} currency={currency} />
       </div>
     </>
   );

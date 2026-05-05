@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import type { Business, Lead, Quote } from "../../lib";
+import { fmtMoney as fmtMoneyShared, type Business, type Lead, type Quote } from "../../lib";
 
 type LineItemDraft = {
   id?: number;
@@ -14,12 +14,6 @@ type LineItemDraft = {
 };
 
 const STATUSES = ["draft", "sent", "viewed", "accepted", "declined"];
-
-function fmtMoney(n: number | string): string {
-  const num = typeof n === "string" ? parseFloat(n) : n;
-  if (Number.isNaN(num)) return "$0";
-  return num.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -39,6 +33,11 @@ export default function QuoteEditor({
   lead: Lead | null;
 }) {
   const router = useRouter();
+  const currency = business?.currency ?? "USD";
+  const fmtMoney = (n: number | string) => {
+    const num = typeof n === "string" ? parseFloat(n) : n;
+    return fmtMoneyShared(Number.isNaN(num) ? 0 : num, currency);
+  };
   const [items, setItems] = useState<LineItemDraft[]>(
     quote.line_items.map((li) => ({
       id: li.id,

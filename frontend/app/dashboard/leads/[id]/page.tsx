@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { fetchJson, fmtAge, fmtMoney, type Lead, type Page, type Quote, type Call } from "../../lib";
 import { getAdminUrl } from "../../../lib/api";
+import { getActiveCurrency } from "../../../lib/currency";
 import { LeadActionPill, StatusPill } from "../../parts";
 
 export default async function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -10,9 +11,10 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
   const lead = await fetchJson<Lead>(`/leads/${id}/`);
   if (!lead) notFound();
 
-  const [quotesRes, callsRes] = await Promise.all([
+  const [quotesRes, callsRes, currency] = await Promise.all([
     fetchJson<Page<Quote>>("/quotes/"),
     fetchJson<Page<Call>>("/calls/"),
+    getActiveCurrency(),
   ]);
   const quotes = (quotesRes?.results ?? []).filter((q) => q.lead === lead.id);
   const calls = (callsRes?.results ?? []).filter((c) => c.lead === lead.id);
@@ -29,7 +31,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
           </p>
         </div>
         <div className="app-pagebar-actions">
-          <LeadActionPill lead={lead} />
+          <LeadActionPill lead={lead} currency={currency} />
           <a href={getAdminUrl(`/leads/lead/${lead.id}/change/`)} target="_blank" rel="noreferrer" className="btn btn-ghost">Edit ↗</a>
         </div>
       </div>
@@ -43,7 +45,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
           </div>
           <div className="detail-card">
             <div className="detail-card-label">Estimated value</div>
-            <div className="detail-card-value">{fmtMoney(lead.estimated_value)}</div>
+            <div className="detail-card-value">{fmtMoney(lead.estimated_value, currency)}</div>
             <div style={{ fontSize: 12, color: "var(--muted)" }}>{quotes.length} quote{quotes.length === 1 ? "" : "s"} drafted</div>
           </div>
           <div className="detail-card">
@@ -127,7 +129,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                     <span className="dash-list-id">{q.reference}</span>
                     <div className="dash-list-body">
                       <div className="dash-list-title" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        {fmtMoney(q.total)}
+                        {fmtMoney(q.total, currency)}
                         <StatusPill status={q.status} />
                         {q.drafted_by_ai && <span className="tag brand">AI</span>}
                       </div>
