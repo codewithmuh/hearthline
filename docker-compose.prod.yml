@@ -25,7 +25,9 @@ services:
     env_file: .env
     environment:
       DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: ${API_DOMAIN:?Set API_DOMAIN in .env}
+      # `backend` lets the Next.js BFF reach Django over the internal docker
+      # network without tripping Django's DisallowedHost guard.
+      DJANGO_ALLOWED_HOSTS: ${API_DOMAIN},backend,localhost,127.0.0.1
       DJANGO_CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN:-https://hearthline.codewithmuh.com}
     expose:
       - "8000"
