@@ -1,0 +1,35 @@
+# Multi-stage Next.js production build (Path B — VPS / EC2 / Docker Compose).
+# Used by docker-compose.prod.yml. The dev Dockerfile stays separate so local
+# hot-reload remains fast.
+
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# NEXT_PUBLIC_* are inlined at build time, so they must be passed as ARGs.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_ADMIN_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+
+COPY --from=builder /app/package.json /app/package-lock.json* ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.mjs ./
+
+EXPOSE 3000
+CMD ["npm", "start"]

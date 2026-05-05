@@ -1,31 +1,22 @@
-# Production stack — backend + Postgres + Caddy reverse proxy with auto-HTTPS.
-# Deploy on any cheap VPS (Hetzner CX11 / DigitalOcean $6 droplet / etc.):
+# Production stack — Django backend + Next.js frontend + Caddy reverse proxy.
+#
+# Database: external (Neon, Supabase, Aiven, etc.) — set DATABASE_URL in .env.
+# If you prefer a local Postgres container, add a `db:` service back and point
+# DATABASE_URL at it.
+#
+# Quick start on a fresh Ubuntu host:
 #
 #   git clone https://github.com/codewithmuh/hearthline.git
 #   cd hearthline
 #   cp .env.example .env       # fill in DJANGO_SECRET_KEY, ANTHROPIC_API_KEY, etc.
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
-# Point your DNS A record:
-#   api.hearthline.codewithmuh.com  →  your-vps-ip
-# Caddy will auto-issue a Let's Encrypt cert on first request.
+# DNS:
+#   API_DOMAIN  (api.example.com)        →  this host's public IP   (Caddy → backend)
+#   APP_DOMAIN  (app.example.com)        →  this host's public IP   (Caddy → frontend)
+# Caddy auto-issues Let's Encrypt certs once both records resolve.
 
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-hearthline}
-      POSTGRES_USER: ${POSTGRES_USER:-hearthline}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    volumes:
-      - hearthline_pg_prod:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hearthline}"]
-      interval: 10s
-      timeout: 3s
-      retries: 6
-
   backend:
     build:
       context: ./backend
@@ -33,15 +24,29 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      POSTGRES_HOST: db
       DJANGO_DEBUG: "0"
-      DJANGO_ALLOWED_HOSTS: ${API_DOMAIN:?Set API_DOMAIN in .env e.g. api.hearthline.codewithmuh.com}
+      DJANGO_ALLOWED_HOSTS: ${API_DOMAIN:?Set API_DOMAIN in .env}
       DJANGO_CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN:-https://hearthline.codewithmuh.com}
-    depends_on:
-      db:
-        condition: service_healthy
     expose:
       - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN}/api
+        NEXT_PUBLIC_ADMIN_URL: https://${API_DOMAIN}/admin/
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_URL: http://backend:8000/api
+      NEXT_PUBLIC_API_URL: https://${API_DOMAIN}/api
+      NEXT_PUBLIC_ADMIN_URL: https://${API_DOMAIN}/admin/
+      NODE_ENV: production
+    expose:
+      - "3000"
+    depends_on:
+      - backend
 
   caddy:
     image: caddy:2-alpine
@@ -52,14 +57,15 @@ services:
       - "443:443/udp"
     environment:
       API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env}
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
       - backend
+      - frontend
 
 volumes:
-  hearthline_pg_prod:
   caddy_data:
   caddy_config:
