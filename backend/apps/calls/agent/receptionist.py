@@ -366,11 +366,42 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
 
     response = client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=320,
+        max_tokens=1024,
         system=system_prompt,
         tools=TOOLS,
         messages=conversation_history,
     )
+    logger.info("[CLAUDE] stop_reason=%s blocks=%s", response.stop_reason,
+                [b.type for b in response.content])
+
+    # If the model said "let me do X for you" without firing the tool (and
+    # didn't max out tokens), nudge it explicitly. This breaks the "I'll
+    # draft / I'll book / I'll send" loop where Anna keeps verbalizing intent
+    # without ever calling the tool.
+    if (response.stop_reason in ("end_turn", "stop_sequence")
+            and not any(b.type == "tool_use" for b in response.content)):
+        text_so_far = "".join(b.text for b in response.content if b.type == "text").lower()
+        intent_phrases = ("let me draft", "let me get", "i'll draft", "i'll book",
+                          "let me book", "drafting that", "drafting it", "let me put",
+                          "one moment", "right now", "let me do that")
+        if any(p in text_so_far for p in intent_phrases):
+            logger.info("[NUDGE] verbalized intent without tool_use — retrying with explicit instruction")
+            conversation_history.append(
+                {"role": "assistant", "content": response.to_dict()["content"]},
+            )
+            conversation_history.append({
+                "role": "user",
+                "content": "[system: please call the actual tool now — don't just talk about it]",
+            })
+            response = client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=1024,
+                system=system_prompt,
+                tools=TOOLS,
+                messages=conversation_history,
+            )
+            logger.info("[CLAUDE retry] stop_reason=%s blocks=%s", response.stop_reason,
+                        [b.type for b in response.content])
 
     should_end = False
     last_tool: str | None = None
@@ -419,7 +450,7 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
 
         response = client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=320,
+            max_tokens=1024,
             system=system_prompt,
             tools=TOOLS,
             messages=conversation_history,
