@@ -10,6 +10,7 @@ from apps.support.models import Ticket, TicketMessage
 
 from .responder import generate_reply
 from .whatsapp import send_text as send_whatsapp_text
+from .whatsapp_lead import reply_for_whatsapp_ticket
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,13 @@ def handle_inbound(
         logger.info("[SUPPORT INTAKE] ticket=%s human_only — no AI reply", ticket.pk)
         return {"ticket_id": ticket.pk, "reply": "", "sent": False, "human_only": True}
 
-    reply = generate_reply(ticket)
+    # WhatsApp gets the full Anna receptionist loop (qualify_lead, draft_quote,
+    # book_appointment) so a customer chat creates real Lead + Quote rows.
+    # Other channels still use the lightweight knowledge-base responder.
+    if channel == "whatsapp":
+        reply = reply_for_whatsapp_ticket(ticket)
+    else:
+        reply = generate_reply(ticket)
     if not reply:
         return {"ticket_id": ticket.pk, "reply": "", "sent": False}
 

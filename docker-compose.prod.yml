@@ -29,6 +29,10 @@ services:
       # network without tripping Django's DisallowedHost guard.
       DJANGO_ALLOWED_HOSTS: ${API_DOMAIN},backend,localhost,127.0.0.1
       DJANGO_CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN:-https://hearthline.codewithmuh.com}
+      # Quote PDFs land here; the volume below keeps them across rebuilds.
+      QUOTE_PDF_DIR: /var/data/quotes
+    volumes:
+      - hearthline_quote_pdfs:/var/data/quotes
     expose:
       - "8000"
 
@@ -71,3 +75,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  hearthline_quote_pdfs:

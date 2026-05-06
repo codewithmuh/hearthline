@@ -1,6 +1,12 @@
+import secrets
+
 from django.db import models
 
 from apps.leads.models import Lead
+
+
+def _gen_public_token() -> str:
+    return secrets.token_urlsafe(24)
 
 
 class Quote(models.Model):
@@ -19,6 +25,10 @@ class Quote(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     pdf_url = models.URLField(blank=True)
+    # Random unguessable token used in the public WhatsApp/SMS quote URL.
+    # The reference (HL-A1F3C2) is short and human-readable but only ~16M
+    # combos — too small for an open URL. This token gives ~144 bits of entropy.
+    public_token = models.CharField(max_length=40, unique=True, default=_gen_public_token)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="draft")
     drafted_by_ai = models.BooleanField(default=True)
     # JSON metadata bucket — currently stores `drafted_during_call` (Vapi

@@ -99,7 +99,21 @@ export default function QuoteEditor({
     }
   }
 
-  function downloadPdf() { window.print(); }
+  async function downloadPdf() {
+    try {
+      const res = await fetch(`/api/proxy/quotes/${quote.id}/render-pdf`, { method: "POST" });
+      if (!res.ok) throw new Error(`render-pdf returned ${res.status}`);
+      const data = await res.json();
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener");
+        return;
+      }
+      throw new Error("no url in response");
+    } catch {
+      // Fallback to legacy browser-print path if the server renderer is unavailable.
+      window.print();
+    }
+  }
 
   async function delQuote() {
     if (!confirm("Delete this quote? This cannot be undone.")) return;

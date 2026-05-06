@@ -107,6 +107,43 @@ def _resolve_business(phone_number_id: str) -> Business | None:
     return Business.objects.first()
 
 
+def send_document(business: Business, to: str, link: str, filename: str, caption: str = "") -> dict:
+    """Send a hosted PDF/document by URL via Meta's WhatsApp Cloud API."""
+    token = business.resolved_whatsapp_token
+    phone_id = business.resolved_whatsapp_phone_id
+    if not token or not phone_id:
+        logger.error("WhatsApp credentials missing for business %s", business.pk)
+        return {"ok": False, "error": "whatsapp_not_configured"}
+
+    url = f"{WHATSAPP_API_URL}/{phone_id}/messages"
+    document = {"link": link, "filename": filename}
+    if caption:
+        document["caption"] = caption[:1024]
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "document",
+        "document": document,
+    }
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=SEND_TIMEOUT)
+        response.raise_for_status()
+        data = response.json()
+        out_id = ""
+        try:
+            out_id = (data.get("messages") or [{}])[0].get("id", "")
+        except Exception:  # noqa: BLE001
+            pass
+        logger.info("[WHATSAPP DOC] biz=%s to=%s id=%s url=%s", business.pk, to, out_id, link)
+        return {"ok": True, "provider_message_id": out_id}
+    except requests.RequestException as exc:
+        logger.exception("[WHATSAPP DOC ERROR] biz=%s to=%s err=%s", business.pk, to, exc)
+        return {"ok": False, "error": str(exc)}
+
+
 def send_text(business: Business, to: str, body: str) -> dict:
     """Send a plain-text WhatsApp message. Returns {ok, ...} for logging."""
     token = business.resolved_whatsapp_token

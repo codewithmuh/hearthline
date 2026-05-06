@@ -13,3 +13,4 @@ dj-database-url==2.3.0
 cryptography==44.0.0
 django-ratelimit==4.1.0
 pypdf==5.1.0
+reportlab==4.2.5

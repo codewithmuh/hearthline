@@ -9,9 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# fonts-dejavu-core gives ReportLab the Unicode glyphs it needs in rendered PDFs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libpq-dev curl \
-    && rm -rf /var/lib/apt/lists/*
+        build-essential libpq-dev curl fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/data/quotes
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
