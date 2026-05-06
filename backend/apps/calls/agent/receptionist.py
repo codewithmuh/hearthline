@@ -59,6 +59,39 @@ def _mark_end_call_deferred(call_id: str | None) -> None:
     cache.set(f"end_deferred:{call_id}", True, timeout=_CALL_STATE_TTL)
 
 
+# Tools whose results are stable for a given call — re-running them is wasteful
+# and adds 1–3s of LLM + DB latency per turn. We cache the first result for
+# the call lifetime and return it on subsequent calls.
+_DEDUPABLE_TOOLS = {"qualify_lead", "draft_quote", "book_appointment", "check_availability"}
+
+
+def _tool_cache_get(call_id: str | None, tool: str) -> dict | None:
+    if not call_id or tool not in _DEDUPABLE_TOOLS:
+        return None
+    return cache.get(f"tool_done:{call_id}:{tool}")
+
+
+def _tool_cache_set(call_id: str | None, tool: str, result: dict) -> None:
+    if not call_id or tool not in _DEDUPABLE_TOOLS:
+        return
+    cache.set(f"tool_done:{call_id}:{tool}", result, timeout=_CALL_STATE_TTL)
+
+
+def _tools_already_run(call_id: str | None) -> list[str]:
+    """Names of tools that have already been called (cached result exists)
+    on this call_id — used to nudge the model not to re-fire them."""
+    if not call_id:
+        return []
+    done: list[str] = []
+    for tool in sorted(_DEDUPABLE_TOOLS):
+        if cache.get(f"tool_done:{call_id}:{tool}") is not None:
+            done.append(tool)
+    if cache.get(f"sms_sent:{call_id}:*"):
+        done.append("send_sms")
+    # send_sms is keyed per-recipient, scan a couple of common recipient keys.
+    return done
+
+
 def _client(business=None):
     biz_key = (business.resolved_anthropic_key if business else "")
     env_key = settings.ANTHROPIC_API_KEY
@@ -144,14 +177,27 @@ def execute_tool(name: str, tool_input: dict, *, caller_phone: str | None = None
     `business` is the resolved Business — its dashboard-saved Twilio creds
     take priority over env-var fallbacks for outbound SMS.
     """
+    cached = _tool_cache_get(call_id, name)
+    if cached is not None:
+        logger.info("[TOOL DEDUP] returning cached %s for call_id=%s", name, call_id)
+        return {**cached, "deduped": True}
+
     if name == "qualify_lead":
-        return qualify_lead_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        result = qualify_lead_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        _tool_cache_set(call_id, name, result)
+        return result
     if name == "book_appointment":
-        return book_appointment_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        result = book_appointment_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        _tool_cache_set(call_id, name, result)
+        return result
     if name == "draft_quote":
-        return draft_quote_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        result = draft_quote_tool(tool_input, verified_phone=caller_phone, call_id=call_id)
+        _tool_cache_set(call_id, name, result)
+        return result
     if name == "check_availability":
-        return check_availability(tool_input["date"], tool_input.get("trade"))
+        result = check_availability(tool_input["date"], tool_input.get("trade"))
+        _tool_cache_set(call_id, name, result)
+        return result
     if name == "send_sms":
         to = (tool_input.get("to") or "").strip() or (caller_phone or "")
         cached = _sms_already_sent(call_id, to)
@@ -262,6 +308,15 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
             "and pass it as customer_phone."
         )
 
+    already_run = _tools_already_run(call_id)
+    if already_run:
+        system_prompt += (
+            "\n\nTOOLS ALREADY CALLED THIS CALL:\n- "
+            + "\n- ".join(already_run)
+            + "\nDo NOT call any of these tools again. Their results are already "
+            "saved. Speak to the caller directly instead."
+        )
+
     provider = (getattr(biz, "llm_provider", "") or "anthropic").lower()
 
     if provider == "openai":
@@ -309,7 +364,7 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
 
     response = client.messages.create(
         model=CLAUDE_MODEL,
-        max_tokens=1024,
+        max_tokens=320,
         system=system_prompt,
         tools=TOOLS,
         messages=conversation_history,
@@ -362,7 +417,7 @@ def handle_conversation_turn(conversation_history: list, caller_phone: str | Non
 
         response = client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=1024,
+            max_tokens=320,
             system=system_prompt,
             tools=TOOLS,
             messages=conversation_history,
