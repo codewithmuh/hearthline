@@ -4,11 +4,14 @@
 > Your receptionist's name, voice, and script. Your AI keys. Your data.
 > Self-hostable. AGPL-3.0 (commercial license available). Built in public.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-black.svg)](LICENSE)
-[![Commercial license](https://img.shields.io/badge/Commercial-license%20available-d2532b.svg)](COMMERCIAL.md)
-[![Built with Claude](https://img.shields.io/badge/AI-Claude%20Sonnet%204.6-d2532b.svg)](https://anthropic.com)
-[![Voice by Vapi](https://img.shields.io/badge/Voice-Vapi-2563eb.svg)](https://vapi.ai)
-[![Stack](https://img.shields.io/badge/Stack-Next.js%20%C2%B7%20Django%20%C2%B7%20Postgres-black.svg)](#stack)
+[![Release](https://img.shields.io/github/v/release/codewithmuh/hearthline?style=flat-square&color=blue)](https://github.com/codewithmuh/hearthline/releases)
+[![Stars](https://img.shields.io/github/stars/codewithmuh/hearthline?style=flat-square&color=gold)](https://github.com/codewithmuh/hearthline/stargazers)
+[![Forks](https://img.shields.io/github/forks/codewithmuh/hearthline?style=flat-square&color=blueviolet)](https://github.com/codewithmuh/hearthline/network/members)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-black.svg?style=flat-square)](LICENSE)
+[![Commercial license](https://img.shields.io/badge/Commercial-license%20available-d2532b.svg?style=flat-square)](COMMERCIAL.md)
+[![Built with Claude](https://img.shields.io/badge/AI-Claude%20Sonnet%204.6-d2532b.svg?style=flat-square)](https://anthropic.com)
+[![Voice by Vapi](https://img.shields.io/badge/Voice-Vapi-2563eb.svg?style=flat-square)](https://vapi.ai)
+[![Stack](https://img.shields.io/badge/Stack-Next.js%2015%20%C2%B7%20Django%205%20%C2%B7%20Postgres-black.svg?style=flat-square)](#stack)
 
 **🌐 Live demo:** [hearthline.codewithmuh.com](https://hearthline.codewithmuh.com) ·
 **📺 Build along:** [@codewithmuh on YouTube](https://youtube.com/@codewithmuh) ·
@@ -124,34 +127,21 @@ else is data-driven and editable in the UI.
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌──────────────────────────────────────────┐
-│ Caller (phone)  │───▶│ Vapi (STT + TTS, your phone number)       │
-└─────────────────┘    └──────────────────┬────────────────────────┘
-                                          │ POST /api/calls/vapi/chat/completions/
-                                          │ (OpenAI-compatible, custom-LLM mode)
-                                          ▼
-                       ┌──────────────────────────────────────────┐
-                       │ Django · Receptionist agent loop          │
-                       │  Tools: qualify_lead · check_availability │
-                       │         draft_quote · book_appointment    │
-                       │         send_sms · send_email · end_call  │
-                       │  LLM provider: Anthropic OR OpenAI        │
-                       │  System prompt: per-business knowledge    │
-                       └──────────────────┬────────────────────────┘
-                                          │
-                                          ▼
-                       ┌──────────────────────────────────────────┐
-                       │ Postgres                                  │
-                       │  Business · Channel · Customer · Lead     │
-                       │  Conversation · Message · Call · Quote    │
-                       └──────────────────┬────────────────────────┘
-                                          │
-                                          ▼
-                       ┌──────────────────────────────────────────┐
-                       │ Next.js dashboard (10 languages, RTL OK)  │
-                       │  Overview · Leads · Calls · Quotes · ...  │
-                       └──────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Caller([Caller / Customer Phone]) -->|Inbound Voice Call| Vapi[Vapi AI STT / TTS Transport]
+    Vapi -->|POST /api/calls/vapi/chat/completions/| Django[Django 5 Receptionist Agent Loop]
+    subgraph Agent [Autonomous AI Agent Core]
+        Django --> Tools{Agent Tool Execution}
+        Tools --> T1[qualify_lead]
+        Tools --> T2[check_availability]
+        Tools --> T3[draft_quote]
+        Tools --> T4[book_appointment]
+        Tools --> T5[send_sms / send_email]
+        Django -. LLM Provider .-> Claude[Anthropic Claude Sonnet 4.6 / OpenAI]
+    end
+    Django --> Postgres[(PostgreSQL 16: Leads, Calls, Quotes, CRM)]
+    Postgres --> NextJS[Next.js 15 Agent Dashboard :3000<br/>Overview · Leads · Calls · Quotes · 10 Languages]
 ```
 
 ## Wire real voice (Vapi)
